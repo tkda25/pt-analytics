@@ -3,10 +3,10 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <title>PT Analytics v11</title>
-  <link rel="stylesheet" href="style.css?v=11" />
+  <title>PT Analytics v13</title>
+  <link rel="stylesheet" href="style.css?v=13" />
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-  <script src="config.js?v=11"></script>
+  <script src="config.js?v=13"></script>
 </head>
 <body>
     <section id="authGate" class="auth-gate">
@@ -39,6 +39,13 @@
         <button class="nav-item" data-view="condition">生活・コンディション</button>
         <button class="nav-item" data-view="report">レポート</button>
       </nav>
+  <div class="sidebar-tools">
+          <div class="sidebar-tools-label">設定</div>
+          <button type="button" class="sidebar-tool-btn" id="menuBackupBtn">バックアップ</button>
+          <button type="button" class="sidebar-tool-btn" id="menuAccountBtn">アカウント</button>
+          <button type="button" class="sidebar-tool-btn danger" id="menuResetBtn">初期化</button>
+        </div>
+
     </aside>
 
     <main>
@@ -58,8 +65,8 @@
             <div id="clientSearchResults" class="client-search-results" hidden></div>
           </div>
           <button id="clientBtn" class="ghost-btn">クライアント管理</button>
-          <button id="backupBtn" class="ghost-btn">バックアップ</button><button id="accountBtn" class="ghost-btn">アカウント</button>
-          <button id="resetBtn" class="ghost-btn danger-lite">初期化</button>
+          
+          
         </div>
       </header>
 
@@ -147,8 +154,6 @@
         <select id="progressRangeSelect" class="compact-select">
           <option value="30">1ヶ月</option>
           <option value="90" selected>3ヶ月</option>
-          <option value="180">6ヶ月</option>
-          <option value="0">全期間</option>
         </select>
       </div>
     </div>
@@ -161,12 +166,12 @@
           <div class="mini-stat"><span>前回比 重量</span><strong id="progressWeightChange">—</strong></div>
           <div class="mini-stat"><span>前回比 回数</span><strong id="progressRepsChange">—</strong></div>
           <div class="mini-stat"><span>前回比 推定1RM</span><strong id="progressOrmChange">—</strong></div>
-          <div class="mini-stat"><span>期間ボリューム</span><strong id="progressPeriodVolume">—</strong></div>
+          
         </div>
         <div class="grid two progress-charts">
           <article class="chart-card inner-card"><div class="card-head"><h3>重量の推移</h3><span>kg</span></div><svg id="exerciseWeightChart" viewBox="0 0 700 260" preserveAspectRatio="none"></svg></article>
           <article class="chart-card inner-card"><div class="card-head"><h3>推定1RMの推移</h3><span>kg</span></div><svg id="exerciseOrmChart" viewBox="0 0 700 260" preserveAspectRatio="none"></svg></article>
-          <article class="chart-card inner-card"><div class="card-head"><h3>総ボリュームの推移</h3><span>kg</span></div><svg id="exerciseVolumeChart" viewBox="0 0 700 260" preserveAspectRatio="none"></svg></article>
+          <article class="chart-card inner-card"><div class="card-head"><h3>1日ごとのボリューム</h3><span>kg</span></div><svg id="exerciseVolumeChart" viewBox="0 0 700 260" preserveAspectRatio="none"></svg></article>
         </div>
       </section>
 
@@ -174,7 +179,7 @@
         <article class="card">
           <div class="card-head"><h3>トレーニング履歴</h3><span id="trainingHistoryClientName"></span><select id="exerciseFilter" class="compact-select"><option value="">全種目</option></select></div>
            <div class="period-tabs" id="periodTabs"><button data-days="7">1週間</button><button data-days="30" class="active">1ヶ月</button><button data-days="90">3ヶ月</button><button data-days="0">全期間</button></div>
-          <div class="table-wrap"><table><thead><tr><th>日付</th><th>種目</th><th>重量</th><th>回数</th><th>RPE</th><th>推定1RM</th><th>操作</th></tr></thead><tbody id="trainingTable"></tbody></table></div>
+          <div class="table-wrap"><table><thead><tr><th>日付</th><th>種目</th><th>重量</th><th>回数</th><th>推定1RM</th><th>操作</th></tr></thead><tbody id="trainingTable"></tbody></table></div>
         </article>
       </section>
 
@@ -212,8 +217,8 @@
       <label>日付<input name="date" type="date" required></label>
       <label>種目<select name="exercise" id="exerciseSelect"><option>ベンチプレス</option><option>スクワット</option><option>デッドリフト</option><option>ショルダープレス</option><option>ラットプルダウン</option></select></label><label>種目を追加<div class="inline-add"><input id="newExercise" placeholder="例：インクラインベンチ"><button type="button" id="addExerciseBtn">追加</button></div></label>
       <div class="form-grid"><label>重量(kg)<input name="weight" type="number" step="0.5" min="0" required></label><label>回数<input name="reps" type="number" min="1" required></label></div>
-      <div class="form-grid"><label>セット<input name="sets" type="number" min="1" value="3" required></label><label>RPE<input name="rpe" type="number" step="0.5" min="5" max="10" value="8" required></label></div>
-      <label>メモ<textarea name="note" rows="3" placeholder="フォーム・体調・指導メモなど"></textarea></label><p class="hint">推定1RMは Epley式をベースに、RPEから残存回数(RIR)を推定して補正します。</p>
+      <div class="form-grid"><label>セット<input name="sets" type="number" min="1" value="3" required></label></div>
+      <label>メモ<textarea name="note" rows="3" placeholder="フォーム・体調・指導メモなど"></textarea></label><p class="hint">推定1RMはBrzycki式で計算します（1〜10回のセットを対象）。例：115kg × 8回 → 約142.8kg。</p>
       <div class="dialog-actions"><button type="button" data-close>キャンセル</button><button class="primary" value="default">保存</button></div>
     </form>
   </dialog>
@@ -265,6 +270,6 @@
     </form>
   </dialog>
 
-  <script src="app.js?v=11"></script>
+  <script src="app.js?v=13"></script>
 </body>
 </html>

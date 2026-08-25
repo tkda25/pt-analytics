@@ -31,9 +31,9 @@ function ensureUuidState(){
   if(!state.clients.some(c=>c.id===state.activeClientId))state.activeClientId=state.clients[0]?.id||'';
 }
 function cloudClientRow(c){return{id:c.id,name:c.name,age:c.age||null,sex:c.sex||null,height:c.height||null,goal:c.goal||null}}
-function cloudTrainingRow(r){const orm=e1rm(r.weight,r.reps,r.rpe);return{id:r.id,client_id:r.clientId,training_date:r.date,exercise:r.exercise,weight:r.weight,reps:r.reps,sets:r.sets,rpe:r.rpe||null,estimated_1rm:Number.isFinite(orm)?orm:null,volume:(+r.weight||0)*(+r.reps||0)*(+r.sets||0),note:r.note||null}}
+function cloudTrainingRow(r){const orm=e1rm(r.weight,r.reps);return{id:r.id,client_id:r.clientId,training_date:r.date,exercise:r.exercise,weight:r.weight,reps:r.reps,sets:r.sets,rpe:null,estimated_1rm:Number.isFinite(orm)?Math.round(orm*10)/10:null,volume:(+r.weight||0)*(+r.reps||0)*(+r.sets||0),note:r.note||null}}
 function cloudBodyRow(r){return{id:r.id,client_id:r.clientId,record_date:r.date,body_weight:r.bodyWeight||null,body_fat:r.bodyFat||null,water:r.water||null,sleep:r.sleep||null,steps:r.steps||null,condition:r.condition||null,note:r.note||null}}
-function localFromCloud(c,t,b){return{activeClientId:c[0]?.id||'',clients:c.map(x=>({id:x.id,name:x.name,age:x.age||'',sex:x.sex||'',height:x.height||'',goal:x.goal||''})),training:t.map(x=>({id:x.id,clientId:x.client_id,date:x.training_date,exercise:x.exercise,weight:+x.weight,reps:x.reps,sets:x.sets,rpe:x.rpe==null?10:+x.rpe,note:x.note||''})),body:b.map(x=>({id:x.id,clientId:x.client_id,date:x.record_date,bodyWeight:x.body_weight==null?null:+x.body_weight,bodyFat:x.body_fat==null?null:+x.body_fat,water:x.water==null?null:+x.water,sleep:x.sleep==null?null:+x.sleep,steps:x.steps,condition:x.condition,note:x.note||''})),exercises:state.exercises||clone(defaultState.exercises)}}
+function localFromCloud(c,t,b){return{activeClientId:c[0]?.id||'',clients:c.map(x=>({id:x.id,name:x.name,age:x.age||'',sex:x.sex||'',height:x.height||'',goal:x.goal||''})),training:t.map(x=>({id:x.id,clientId:x.client_id,date:x.training_date,exercise:x.exercise,weight:+x.weight,reps:x.reps,sets:x.sets,rpe:null,note:x.note||''})),body:b.map(x=>({id:x.id,clientId:x.client_id,date:x.record_date,bodyWeight:x.body_weight==null?null:+x.body_weight,bodyFat:x.body_fat==null?null:+x.body_fat,water:x.water==null?null:+x.water,sleep:x.sleep==null?null:+x.sleep,steps:x.steps,condition:x.condition,note:x.note||''})),exercises:state.exercises||clone(defaultState.exercises)}}
 async function fetchCloudState(){
   if(!sb||!currentUser)return false;
   setSyncStatus('読み込み中');
@@ -159,8 +159,14 @@ function today(){return new Date().toISOString().slice(0,10)}
 function n(v,d=1){const x=Number(v);return Number.isFinite(x)?x.toFixed(d):'—'}
 function esc(s){return String(s??'').replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]))}
 function clientRows(arr){return arr.filter(x=>x.clientId===state.activeClientId).sort((a,b)=>a.date.localeCompare(b.date))}
-function rirFromRpe(rpe){return Math.max(0,10-Number(rpe||10))}
-function e1rm(w,reps,rpe){return Number(w)*(1+(Number(reps)+rirFromRpe(rpe))/30)}
+function e1rm(w,reps){
+  const weight=Number(w), r=Number(reps);
+  if(!Number.isFinite(weight)||weight<=0||!Number.isFinite(r)||r<=0)return 0;
+  // Brzycki formula is intended for low-to-moderate rep sets; cap at 10 reps here.
+  const repsUsed=Math.min(r,10);
+  return weight*36/(37-repsUsed);
+}
+
 function latest(a,k){const x=a.filter(v=>v[k]!=null&&v[k]!==0);return x.length?x[x.length-1][k]:null}
 function avg(arr,k){const a=arr.map(x=>Number(x[k])).filter(v=>Number.isFinite(v)&&v!==0);return a.length?a.reduce((s,v)=>s+v,0)/a.length:null}
 function withinDays(x,days=periodDays){
@@ -188,8 +194,7 @@ document.querySelectorAll('[data-open]').forEach(b=>b.onclick=()=>{
     document.getElementById('trainingDialogTitle').textContent='トレーニングを記録';
     document.getElementById('trainingForm').reset();
     document.getElementById('trainingForm').elements.sets.value=3;
-    document.getElementById('trainingForm').elements.rpe.value=8;
-  }
+      }
   if(type==='body'){
     editingBodyId=null;
     document.getElementById('bodyDialogTitle').textContent='身体・生活データを記録';
@@ -204,7 +209,7 @@ document.getElementById('trainingForm').addEventListener('submit',e=>{
   const f=new FormData(e.currentTarget);
   const payload={
     clientId:state.activeClientId,date:f.get('date'),exercise:f.get('exercise'),
-    weight:+f.get('weight'),reps:+f.get('reps'),sets:+f.get('sets'),rpe:+f.get('rpe'),note:f.get('note')||''
+    weight:+f.get('weight'),reps:+f.get('reps'),sets:+f.get('sets'),note:f.get('note')||''
   };
   if(editingTrainingId){
     const row=state.training.find(x=>x.id===editingTrainingId);
@@ -290,7 +295,7 @@ function loadClientForm(c){
   if(!c)return;
   ['name','age','sex','height','goal'].forEach(k=>clientForm.elements[k].value=c[k]??'');
 }
-document.getElementById('resetBtn').onclick=()=>{
+document.getElementById('menuResetBtn').onclick=()=>{closeMobileMenu();
   if(confirm('この端末に保存されたPT Analyticsの全データを初期化しますか？')){
     state=clone(defaultState);save();render();
   }
@@ -338,8 +343,7 @@ function editTraining(id){
   form.elements.weight.value=x.weight??'';
   form.elements.reps.value=x.reps??'';
   form.elements.sets.value=x.sets??1;
-  form.elements.rpe.value=x.rpe??8;
-  form.elements.note.value=x.note||'';
+    form.elements.note.value=x.note||'';
   document.getElementById('trainingDialog').showModal();
 }
 function editBody(id){
@@ -441,8 +445,8 @@ document.getElementById('exportCsvBtn').onclick=()=>{
   const c=active(),tr=clientRows(state.training),bd=clientRows(state.body);
   const lines=[
     ['クライアント',c.name],['目標',c.goal||''],[],
-    ['TRAINING'],['日付','種目','重量kg','回数','セット','RPE','推定1RMkg'],
-    ...tr.map(x=>[x.date,x.exercise,x.weight,x.reps,x.sets,x.rpe,n(e1rm(x.weight,x.reps,x.rpe))]),
+    ['TRAINING'],['日付','種目','重量kg','回数','セット','推定1RMkg'],
+    ...tr.map(x=>[x.date,x.exercise,x.weight,x.reps,x.sets,n(e1rm(x.weight,x.reps))]),
     [],['BODY'],['日付','体重kg','体脂肪%','水分L','睡眠h','歩数','体調','メモ'],
     ...bd.map(x=>[x.date,x.bodyWeight||'',x.bodyFat||'',x.water||'',x.sleep||'',x.steps||'',x.condition||'',x.note||''])
   ];
@@ -500,7 +504,7 @@ function render(){
       ['最新体重','—'],['水分量','—'],['睡眠','—'],['推定1RM BEST','—'],['総ボリューム','—']
     ].map(x=>`<article class="card kpi"><div class="label">${x[0]}</div><div class="value">${x[1]}</div><div class="change">クライアント未登録</div></article>`).join('');
 
-    document.getElementById('trainingTable').innerHTML='<tr><td colspan="7">クライアントを登録してください</td></tr>';
+    document.getElementById('trainingTable').innerHTML='<tr><td colspan="6">クライアントを登録してください</td></tr>';
     const bt=document.getElementById('bodyTable');if(bt)bt.innerHTML='<tr><td colspan="8">クライアントを登録してください</td></tr>';
     const cl=document.getElementById('clientList');if(cl)cl.innerHTML='<div class="search-empty">まだクライアントが登録されていません</div>';
     if(clientCountLabel)clientCountLabel.textContent='0名';
@@ -528,7 +532,7 @@ function render(){
   const prevBd=previousPeriodRows(bdAll);
 
   const lastW=latest(bdAll,'bodyWeight'),lastWater=latest(bdAll,'water'),lastSleep=latest(bdAll,'sleep');
-  const best=trAll.length?Math.max(...trAll.map(x=>e1rm(x.weight,x.reps,x.rpe))):null;
+  const best=trAll.length?Math.max(...trAll.map(x=>e1rm(x.weight,x.reps))):null;
   const vol=trAll.reduce((s,x)=>s+x.weight*x.reps*x.sets,0);
   const kpis=[
     ['最新体重',lastW==null?'—':n(lastW)+' kg'],
@@ -537,7 +541,7 @@ function render(){
     ['推定1RM BEST',best==null?'—':n(best)+' kg'],
     ['総ボリューム',vol?Math.round(vol).toLocaleString()+' kg':'—']
   ];
-  document.getElementById('kpiGrid').innerHTML=kpis.map(x=>`<article class="card kpi"><div class="label">${x[0]}</div><div class="value">${x[1]}</div><div class="change">端末内に自動保存</div></article>`).join('');
+  document.getElementById('kpiGrid').innerHTML=kpis.map(x=>`<article class="card kpi"><div class="label">${x[0]}</div><div class="value">${x[1]}</div></article>`).join('');
 
   const curVol=tr.reduce((s,x)=>s+x.weight*x.reps*x.sets,0),prevVol=prevTr.reduce((s,x)=>s+x.weight*x.reps*x.sets,0);
   const curSleep=avg(bd,'sleep'),prevSleep=avg(prevBd,'sleep');
@@ -551,7 +555,7 @@ function render(){
   ];
   document.getElementById('comparisonStrip').innerHTML='<strong>前期間比</strong>'+comp.map(([l,v,cl])=>`<div class="compare-item"><span class="compare-label">${l}</span><span class="compare-value ${cl}">${v}</span></div>`).join('');
 
-  document.getElementById('trainingTable').innerHTML=tr.slice().reverse().slice(0,20).map(x=>`<tr><td>${x.date}</td><td>${esc(x.exercise)}</td><td>${x.weight}kg</td><td>${x.reps}</td><td>${x.rpe}</td><td>${n(e1rm(x.weight,x.reps,x.rpe))}kg</td><td><div class="table-actions"><button class="edit-btn" onclick="editTraining('${x.id}')">編集</button><button class="action-btn" onclick="removeTraining('${x.id}')">削除</button></div></td></tr>`).join('')||'<tr><td colspan="7">まだ記録がありません</td></tr>';
+  document.getElementById('trainingTable').innerHTML=tr.slice().reverse().slice(0,20).map(x=>`<tr><td>${x.date}</td><td>${esc(x.exercise)}</td><td>${x.weight}kg</td><td>${x.reps}</td><td>${n(e1rm(x.weight,x.reps))}kg</td><td><div class="table-actions"><button class="edit-btn" onclick="editTraining('${x.id}')">編集</button><button class="action-btn" onclick="removeTraining('${x.id}')">削除</button></div></td></tr>`).join('')||'<tr><td colspan="6">まだ記録がありません</td></tr>';
 
   const last7=bdAll.slice(-7);
   document.getElementById('conditionSummary').innerHTML=[
@@ -562,7 +566,7 @@ function render(){
 
   const startWeight=bd.length?bd.find(x=>x.bodyWeight)?.bodyWeight:null;
   const endWeight=bd.length?[...bd].reverse().find(x=>x.bodyWeight)?.bodyWeight:null;
-  const periodBest=tr.length?Math.max(...tr.map(x=>e1rm(x.weight,x.reps,x.rpe))):null;
+  const periodBest=tr.length?Math.max(...tr.map(x=>e1rm(x.weight,x.reps))):null;
   const report=[
     ['表示期間',periodDays?`直近${periodDays}日`:'全期間'],
     ['トレーニング回数',`${tr.length}件`],
@@ -588,11 +592,10 @@ function render(){
   const [latestSet,prevSet]=latestTwo(allExerciseRows);
 
   const bestWeight=progressRows.length?Math.max(...progressRows.map(x=>Number(x.weight)||0)):null;
-  const bestOrm=progressRows.length?Math.max(...progressRows.map(x=>e1rm(x.weight,x.reps,x.rpe))):null;
+  const bestOrm=progressRows.length?Math.max(...progressRows.map(x=>e1rm(x.weight,x.reps))):null;
   const latestWeight=latestSet?.weight??null;
-  const latestOrm=latestSet?e1rm(latestSet.weight,latestSet.reps,latestSet.rpe):null;
-  const prevOrm=prevSet?e1rm(prevSet.weight,prevSet.reps,prevSet.rpe):null;
-  const periodVolume=progressRows.reduce((s,x)=>s+(Number(x.weight)||0)*(Number(x.reps)||0)*(Number(x.sets)||0),0);
+  const latestOrm=latestSet?e1rm(latestSet.weight,latestSet.reps):null;
+  const prevOrm=prevSet?e1rm(prevSet.weight,prevSet.reps):null;
 
   document.getElementById('progressBestWeight').textContent=bestWeight?`${n(bestWeight)} kg`:'—';
   document.getElementById('progressBestOrm').textContent=bestOrm?`${n(bestOrm)} kg`:'—';
@@ -601,9 +604,8 @@ function render(){
   document.getElementById('progressWeightChange').textContent=latestSet&&prevSet?signed(Number(latestSet.weight)-Number(prevSet.weight),1,' kg'):'—';
   document.getElementById('progressRepsChange').textContent=latestSet&&prevSet?signed(Number(latestSet.reps)-Number(prevSet.reps),0,'回'):'—';
   document.getElementById('progressOrmChange').textContent=latestSet&&prevSet?signed(latestOrm-prevOrm,1,' kg'):'—';
-  document.getElementById('progressPeriodVolume').textContent=periodVolume?`${Math.round(periodVolume).toLocaleString()} kg`:'—';
 
-  const previousBestOrm=allExerciseRows.length>1?Math.max(...allExerciseRows.slice(0,-1).map(x=>e1rm(x.weight,x.reps,x.rpe))):null;
+  const previousBestOrm=allExerciseRows.length>1?Math.max(...allExerciseRows.slice(0,-1).map(x=>e1rm(x.weight,x.reps))):null;
   const prBanner=document.getElementById('prBanner');
   if(latestOrm && previousBestOrm && latestOrm>previousBestOrm){
     prBanner.hidden=false;
@@ -611,7 +613,7 @@ function render(){
   }else if(prBanner){prBanner.hidden=true}
 
   drawLine('exerciseWeightChart',progressRows.map(x=>({date:x.date,value:x.weight})));
-  drawLine('exerciseOrmChart',progressRows.map(x=>({date:x.date,value:e1rm(x.weight,x.reps,x.rpe)})));
+  drawLine('exerciseOrmChart',progressRows.map(x=>({date:x.date,value:e1rm(x.weight,x.reps)})));
   drawBars('exerciseVolumeChart',groupVolumeByDate(progressRows));
 
   // Client-level progress summary (last 90 days vs previous 90 days)
@@ -623,8 +625,8 @@ function render(){
   const prev90=trAll.filter(x=>{const d=new Date(x.date+'T00:00:00');return d>=start180&&d<start90});
   const prevBody90=bdAll.filter(x=>{const d=new Date(x.date+'T00:00:00');return d>=start180&&d<start90});
 
-  const curBest=cur90.length?Math.max(...cur90.map(x=>e1rm(x.weight,x.reps,x.rpe))):null;
-  const prevBest=prev90.length?Math.max(...prev90.map(x=>e1rm(x.weight,x.reps,x.rpe))):null;
+  const curBest=cur90.length?Math.max(...cur90.map(x=>e1rm(x.weight,x.reps))):null;
+  const prevBest=prev90.length?Math.max(...prev90.map(x=>e1rm(x.weight,x.reps))):null;
   const curVol90=cur90.reduce((s,x)=>s+x.weight*x.reps*x.sets,0);
   const prevVol90=prev90.reduce((s,x)=>s+x.weight*x.reps*x.sets,0);
   const curWeight=latest(body90,'bodyWeight');
@@ -649,8 +651,8 @@ function render(){
   drawLine('waterChart',bd.filter(x=>x.water).map(x=>({date:x.date,value:x.water})));
   drawLine('sleepChart',bd.filter(x=>x.sleep).map(x=>({date:x.date,value:x.sleep})));
   drawLine('stepsChart',bd.filter(x=>x.steps).map(x=>({date:x.date,value:x.steps})));
-  drawLine('ormChart',tr.map(x=>({date:x.date,value:e1rm(x.weight,x.reps,x.rpe)})));
-  drawBars('volumeChart',tr.map(x=>({date:x.date,value:x.weight*x.reps*x.sets})));
+  drawLine('ormChart',tr.map(x=>({date:x.date,value:e1rm(x.weight,x.reps)})));
+  drawBars('volumeChart',groupVolumeByDate(tr));
   applyView(currentView);
 }
 
@@ -724,7 +726,7 @@ document.getElementById('signupBtn')?.addEventListener('click',async()=>{
   const {data,error}=await sb.auth.signUp({email,password});
   if(error)setAuthMessage(error.message,'error'); else if(data.session)setAuthMessage('登録しました。','success'); else setAuthMessage('確認メールを確認してください。','success');
 });
-document.getElementById('accountBtn')?.addEventListener('click',()=>document.getElementById('accountDialog')?.showModal());
+document.getElementById('menuAccountBtn')?.addEventListener('click',()=>{closeMobileMenu();document.getElementById('accountDialog')?.showModal()});
 document.getElementById('logoutBtn')?.addEventListener('click',async()=>{await sb?.auth.signOut();document.getElementById('accountDialog')?.close()});
 bootCloud();
 

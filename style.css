@@ -211,3 +211,15 @@ body.no-client #reportSection{opacity:.55}
   .view-actionbar button{width:100%}
   .topbar{margin-bottom:14px}
 }
+
+/* v12 menu utilities + cleaner KPI */
+.sidebar-tools{margin-top:18px;padding-top:14px;border-top:1px solid rgba(255,255,255,.14);display:grid;gap:8px}
+.sidebar-tools-label{padding:0 12px 4px;color:#8fa3ba;font-size:11px;font-weight:700;letter-spacing:.08em}
+.sidebar-tool-btn{width:100%;border:0;border-radius:10px;padding:12px 14px;background:transparent;color:#d6e0ec;text-align:left;font-size:15px}
+.sidebar-tool-btn:hover,.sidebar-tool-btn:focus{background:rgba(255,255,255,.08)}
+.sidebar-tool-btn.danger{color:#ff9c9c}
+.kpi .change:empty{display:none}
+
+/* v13 */
+.exercise-progress-grid{grid-template-columns:repeat(4,1fr)}
+@media(max-width:680px){.exercise-progress-grid{grid-template-columns:1fr 1fr}}
