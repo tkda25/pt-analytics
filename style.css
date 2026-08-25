@@ -81,3 +81,6 @@ html{scroll-behavior:smooth}
   .sidebar nav{grid-template-columns:repeat(3,1fr)}
   .nav-item{min-height:48px}
 }
+
+/* v6 fixed */
+.nav-item:not(.active){background:transparent;color:#d6e0ec}

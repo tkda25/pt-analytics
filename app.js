@@ -121,37 +121,10 @@ const clientSearchResults=document.getElementById('clientSearchResults');
 document.getElementById('clientBtn').onclick=()=>{fillClientSelects();loadClientForm(active());clientDialog.showModal()};
 clientSelect.onchange=()=>{
   if(!clientSelect.value){clientForm.reset();return}
-  state.activeClientId=clientSelect.value;save();loadClientForm(active());
-const navTargets={
-  dashboard:'kpiGrid',
-  clients:'clientsSection',
-  training:'trainingSection',
-  body:'bodySection',
-  condition:'conditionSection',
-  report:'reportSection'
-};
-document.querySelectorAll('.nav-item[data-view]').forEach(btn=>{
-  btn.addEventListener('click',()=>{
-    document.querySelectorAll('.nav-item[data-view]').forEach(b=>b.classList.remove('active'));
-    btn.classList.add('active');
-
-    const view=btn.dataset.view;
-    if(view==='clients'){
-      const target=document.getElementById('clientsSection');
-      target?.scrollIntoView({behavior:'smooth',block:'start'});
-      target?.classList.add('section-flash');
-      setTimeout(()=>target?.classList.remove('section-flash'),800);
-      return;
-    }
-    const id=navTargets[view];
-    const target=document.getElementById(id);
-    target?.scrollIntoView({behavior:'smooth',block:'start'});
-    target?.classList.add('section-flash');
-    setTimeout(()=>target?.classList.remove('section-flash'),800);
-  });
-});
-
-render();
+  state.activeClientId=clientSelect.value;
+  save();
+  loadClientForm(active());
+  render();
 };
 quickClientSelect.onchange=()=>{state.activeClientId=quickClientSelect.value;save();render()};
 document.getElementById('newClientBtn').onclick=()=>{clientForm.reset();clientSelect.value='';clientForm.elements.name.focus()};
@@ -380,4 +353,33 @@ function drawBars(id,data){
   const bw=Math.max(8,Math.min(45,(sc.W-2*sc.p)/data.length*.55));
   data.forEach((v,i)=>s.appendChild(svgEl('rect',{x:sc.x(i)-bw/2,y:sc.y(v.value),width:bw,height:sc.H-sc.p-sc.y(v.value),rx:3,class:'bar'})));
 }
+
+const navTargets={
+  dashboard:'kpiGrid',
+  clients:'clientsSection',
+  training:'trainingSection',
+  body:'bodySection',
+  condition:'conditionSection',
+  report:'reportSection'
+};
+
+function setActiveNav(view){
+  document.querySelectorAll('.nav-item[data-view]').forEach(b=>{
+    b.classList.toggle('active', b.dataset.view===view);
+  });
+}
+
+document.querySelectorAll('.nav-item[data-view]').forEach(btn=>{
+  btn.addEventListener('click',()=>{
+    const view=btn.dataset.view;
+    setActiveNav(view);
+    const id=navTargets[view];
+    const target=document.getElementById(id);
+    if(!target) return;
+    target.scrollIntoView({behavior:'smooth',block:'start'});
+    target.classList.add('section-flash');
+    setTimeout(()=>target.classList.remove('section-flash'),800);
+  });
+});
+
 render();
