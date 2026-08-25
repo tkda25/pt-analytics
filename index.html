@@ -11,12 +11,12 @@
     <aside class="sidebar">
       <div class="brand">🏋️ <span>PT Analytics</span></div>
       <nav>
-        <button class="nav-item active">ダッシュボード</button>
-        <button class="nav-item">クライアント</button>
-        <button class="nav-item">トレーニング</button>
-        <button class="nav-item">身体データ</button>
-        <button class="nav-item">生活・コンディション</button>
-        <button class="nav-item">レポート</button>
+        <button class="nav-item active" data-view="dashboard">ダッシュボード</button>
+        <button class="nav-item" data-view="clients">クライアント</button>
+        <button class="nav-item" data-view="training">トレーニング</button>
+        <button class="nav-item" data-view="body">身体データ</button>
+        <button class="nav-item" data-view="condition">生活・コンディション</button>
+        <button class="nav-item" data-view="report">レポート</button>
       </nav>
     </aside>
 
@@ -28,7 +28,7 @@
         </div>
         <div class="top-actions">
           <div class="client-search-wrap">
-            <input id="clientSearch" class="client-search" type="search" placeholder="名前で検索" autocomplete="off" />
+            <input id="clientSearch" class="client-search" type="search" placeholder="名前で検索" autocomplete="off" inputmode="search" />
             <select id="quickClientSelect" class="header-select" aria-label="クライアント切替"></select>
             <div id="clientSearchResults" class="client-search-results" hidden></div>
           </div>
@@ -38,7 +38,7 @@
         </div>
       </header>
 
-      <section class="profile-card card">
+      <section class="profile-card card" id="clientsSection" data-section="clients">
         <div>
           <h2><span id="clientName">山田 太郎</span> <span class="badge">アクティブ</span></h2>
           <p id="clientMeta">28歳 / 男性 / 178cm</p>
@@ -50,10 +50,10 @@
         </div>
       </section>
 
-      <section class="kpis" id="kpiGrid"></section>
+      <section class="kpis" id="kpiGrid" data-section="dashboard"></section>
       <section class="comparison-strip card" id="comparisonStrip"></section>
 
-      <section class="grid two">
+      <section class="grid two" id="bodySection" data-section="body">
         <article class="card chart-card">
           <div class="card-head"><h3>体重の推移</h3><span>kg</span></div>
           <svg id="weightChart" viewBox="0 0 700 260" preserveAspectRatio="none"></svg>
@@ -64,7 +64,7 @@
         </article>
       </section>
 
-      <section class="grid two">
+      <section class="grid two" id="trainingChartsSection" data-section="training">
         <article class="card chart-card">
           <div class="card-head"><h3>推定1RMの推移</h3><span>RPE補正</span></div>
           <svg id="ormChart" viewBox="0 0 700 260" preserveAspectRatio="none"></svg>
@@ -74,7 +74,7 @@
           <svg id="volumeChart" viewBox="0 0 700 260" preserveAspectRatio="none"></svg>
         </article>
       </section>
-      <section class="grid two">
+      <section class="grid two" id="conditionSection" data-section="condition">
         <article class="card chart-card">
           <div class="card-head"><h3>睡眠時間の推移</h3><span>h / 日</span></div>
           <svg id="sleepChart" viewBox="0 0 700 260" preserveAspectRatio="none"></svg>
@@ -85,7 +85,7 @@
         </article>
       </section>
 
-      <section class="grid two">
+      <section class="grid two" id="trainingSection" data-section="training">
         <article class="card">
           <div class="card-head"><h3>トレーニング履歴</h3><select id="exerciseFilter" class="compact-select"><option value="">全種目</option></select></div>
            <div class="period-tabs" id="periodTabs"><button data-days="7">1週間</button><button data-days="30" class="active">1ヶ月</button><button data-days="90">3ヶ月</button><button data-days="0">全期間</button></div>
@@ -97,7 +97,7 @@
         </article>
       </section>
 
-      <section class="grid two">
+      <section class="grid two" id="reportSection" data-section="report">
         <article class="card">
           <div class="card-head"><h3>身体・生活データ履歴</h3><span>最新20件</span></div>
           <div class="table-wrap"><table><thead><tr><th>日付</th><th>体重</th><th>体脂肪</th><th>水分</th><th>睡眠</th><th>歩数</th><th>体調</th><th>操作</th></tr></thead><tbody id="bodyTable"></tbody></table></div>

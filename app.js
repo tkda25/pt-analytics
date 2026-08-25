@@ -121,7 +121,37 @@ const clientSearchResults=document.getElementById('clientSearchResults');
 document.getElementById('clientBtn').onclick=()=>{fillClientSelects();loadClientForm(active());clientDialog.showModal()};
 clientSelect.onchange=()=>{
   if(!clientSelect.value){clientForm.reset();return}
-  state.activeClientId=clientSelect.value;save();loadClientForm(active());render();
+  state.activeClientId=clientSelect.value;save();loadClientForm(active());
+const navTargets={
+  dashboard:'kpiGrid',
+  clients:'clientsSection',
+  training:'trainingSection',
+  body:'bodySection',
+  condition:'conditionSection',
+  report:'reportSection'
+};
+document.querySelectorAll('.nav-item[data-view]').forEach(btn=>{
+  btn.addEventListener('click',()=>{
+    document.querySelectorAll('.nav-item[data-view]').forEach(b=>b.classList.remove('active'));
+    btn.classList.add('active');
+
+    const view=btn.dataset.view;
+    if(view==='clients'){
+      const target=document.getElementById('clientsSection');
+      target?.scrollIntoView({behavior:'smooth',block:'start'});
+      target?.classList.add('section-flash');
+      setTimeout(()=>target?.classList.remove('section-flash'),800);
+      return;
+    }
+    const id=navTargets[view];
+    const target=document.getElementById(id);
+    target?.scrollIntoView({behavior:'smooth',block:'start'});
+    target?.classList.add('section-flash');
+    setTimeout(()=>target?.classList.remove('section-flash'),800);
+  });
+});
+
+render();
 };
 quickClientSelect.onchange=()=>{state.activeClientId=quickClientSelect.value;save();render()};
 document.getElementById('newClientBtn').onclick=()=>{clientForm.reset();clientSelect.value='';clientForm.elements.name.focus()};
@@ -191,18 +221,18 @@ window.removeTraining=removeTraining;window.removeBody=removeBody;
 
 function renderClientSearchResults(query){
   const q=(query||'').trim().toLowerCase();
-  const matches=state.clients.filter(c=>{
-    if(!q)return true;
-    return [c.name,c.goal,c.sex,String(c.age||'')].some(v=>String(v||'').toLowerCase().includes(q));
-  }).slice(0,20);
-
+  if(!q){
+    clientSearchResults.innerHTML='<div class="search-help">名前を入力すると候補が表示されます</div>';
+    clientSearchResults.hidden=true;
+    return;
+  }
+  const matches=state.clients.filter(c=>String(c.name||'').toLowerCase().includes(q)).slice(0,20);
   clientSearchResults.innerHTML=matches.length
     ? matches.map(c=>`<button type="button" class="search-result" data-client-id="${c.id}"><strong>${esc(c.name)}</strong><small>${esc(c.goal||'目標未設定')}</small></button>`).join('')
     : '<div class="search-empty">該当するクライアントがいません</div>';
-
   clientSearchResults.hidden=false;
 }
-clientSearch.addEventListener('focus',()=>renderClientSearchResults(clientSearch.value));
+clientSearch.addEventListener('focus',()=>{if(clientSearch.value.trim())renderClientSearchResults(clientSearch.value)});
 clientSearch.addEventListener('input',()=>renderClientSearchResults(clientSearch.value));
 clientSearchResults.addEventListener('click',e=>{
   const btn=e.target.closest('[data-client-id]');
