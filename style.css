@@ -190,3 +190,24 @@ body.no-client #trainingSection,
 body.no-client #conditionSummary,
 body.no-client #reportSection{opacity:.55}
 .sync-pill{font-size:12px;color:var(--muted)}
+
+/* v11 page switching */
+.view-heading{margin:0 0 12px}
+.view-heading .eyebrow{margin-bottom:2px}
+.view-heading h2{margin:0;font-size:24px}
+[data-section].view-hidden{display:none!important}
+.grid.one{grid-template-columns:1fr}
+.view-actionbar{display:flex;align-items:center;justify-content:space-between;gap:12px;background:#fff;border:1px solid var(--line);border-radius:14px;padding:14px 16px;margin-bottom:16px}
+.view-actionbar div{display:grid;gap:3px}
+.view-actionbar strong{font-size:16px}
+.view-actionbar span{font-size:12px;color:var(--muted)}
+.view-actionbar button{width:auto}
+.table-actions{display:flex;gap:6px;flex-wrap:wrap}
+.edit-btn{border:1px solid #b9d5ff;background:#eef6ff;color:#0877e8;border-radius:7px;padding:5px 8px;font-size:11px}
+@media(max-width:680px){
+  .view-heading{padding-left:4px}
+  .view-heading h2{font-size:22px}
+  .view-actionbar{align-items:stretch;flex-direction:column}
+  .view-actionbar button{width:100%}
+  .topbar{margin-bottom:14px}
+}

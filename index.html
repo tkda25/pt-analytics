@@ -3,10 +3,10 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <title>PT Analytics v10</title>
-  <link rel="stylesheet" href="style.css?v=10" />
+  <title>PT Analytics v11</title>
+  <link rel="stylesheet" href="style.css?v=11" />
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-  <script src="config.js?v=10"></script>
+  <script src="config.js?v=11"></script>
 </head>
 <body>
     <section id="authGate" class="auth-gate">
@@ -33,7 +33,7 @@
       <div class="brand">🏋️ <span>PT Analytics</span></div>
       <nav>
         <button class="nav-item active" data-view="dashboard">ダッシュボード</button>
-        <button class="nav-item" data-view="clients">クライアント</button>
+        <button class="nav-item" data-view="clients">クライアント一覧</button>
         <button class="nav-item" data-view="training">トレーニング</button>
         <button class="nav-item" data-view="body">身体データ</button>
         <button class="nav-item" data-view="condition">生活・コンディション</button>
@@ -42,6 +42,10 @@
     </aside>
 
     <main>
+      <div class="view-heading">
+        <p class="eyebrow">MENU</p>
+        <h2 id="viewTitle">ダッシュボード</h2>
+      </div>
       <header class="topbar">
         <div class="client-heading">
           <p class="eyebrow">クライアント詳細</p>
@@ -86,7 +90,7 @@
 
 
       <section class="kpis" id="kpiGrid" data-section="dashboard"></section>
-      <section class="comparison-strip card" id="comparisonStrip"></section>
+      <section class="comparison-strip card" id="comparisonStrip" data-section="dashboard"></section>
 
       <section class="card progress-summary-card" id="progressSummary" data-section="dashboard">
         <div class="card-head"><h3>進捗サマリー</h3><span id="progressPeriodLabel">直近3ヶ月</span></div>
@@ -94,6 +98,10 @@
       </section>
 
 
+      <section class="view-actionbar" data-section="body">
+        <div><strong>身体データ</strong><span>体重・水分・睡眠などを記録</span></div>
+        <button class="primary" data-open="body">＋ 身体・生活データ</button>
+      </section>
       <section class="grid two" id="bodySection" data-section="body">
         <article class="card chart-card">
           <div class="card-head"><h3>体重の推移</h3><span>kg</span></div>
@@ -105,6 +113,10 @@
         </article>
       </section>
 
+      <section class="view-actionbar" data-section="training">
+        <div><strong>トレーニング</strong><span>種目ごとの成長と履歴を管理</span></div>
+        <button class="primary" data-open="training">＋ トレーニング記録</button>
+      </section>
       <section class="grid two" id="trainingChartsSection" data-section="training">
         <article class="card chart-card">
           <div class="card-head"><h3>推定1RMの推移</h3><span>RPE補正</span></div>
@@ -158,23 +170,29 @@
         </div>
       </section>
 
-      <section class="grid two" id="trainingSection" data-section="training">
+      <section class="grid one" id="trainingSection" data-section="training">
         <article class="card">
           <div class="card-head"><h3>トレーニング履歴</h3><span id="trainingHistoryClientName"></span><select id="exerciseFilter" class="compact-select"><option value="">全種目</option></select></div>
            <div class="period-tabs" id="periodTabs"><button data-days="7">1週間</button><button data-days="30" class="active">1ヶ月</button><button data-days="90">3ヶ月</button><button data-days="0">全期間</button></div>
           <div class="table-wrap"><table><thead><tr><th>日付</th><th>種目</th><th>重量</th><th>回数</th><th>RPE</th><th>推定1RM</th><th>操作</th></tr></thead><tbody id="trainingTable"></tbody></table></div>
         </article>
+      </section>
+
+      <section class="grid one" id="conditionSummarySection" data-section="condition">
         <article class="card">
           <div class="card-head"><h3>直近7日コンディション</h3></div>
           <div id="conditionSummary" class="condition-grid"></div>
         </article>
       </section>
 
-      <section class="grid two" id="reportSection" data-section="report">
+      <section class="grid one" id="bodyHistorySection" data-section="body">
         <article class="card">
           <div class="card-head"><h3>身体・生活データ履歴</h3><span>最新20件</span></div>
           <div class="table-wrap"><table><thead><tr><th>日付</th><th>体重</th><th>体脂肪</th><th>水分</th><th>睡眠</th><th>歩数</th><th>体調</th><th>操作</th></tr></thead><tbody id="bodyTable"></tbody></table></div>
         </article>
+      </section>
+
+      <section class="grid one" id="reportSection" data-section="report">
         <article class="card report-card" id="reportCard">
           <div class="card-head"><h3>クライアントレポート</h3><span>現在の表示期間</span></div>
           <div id="reportSummary" class="report-summary"></div>
@@ -190,19 +208,19 @@
 
   <dialog id="trainingDialog">
     <form id="trainingForm" method="dialog">
-      <h2>トレーニングを記録</h2>
+      <h2 id="trainingDialogTitle">トレーニングを記録</h2>
       <label>日付<input name="date" type="date" required></label>
       <label>種目<select name="exercise" id="exerciseSelect"><option>ベンチプレス</option><option>スクワット</option><option>デッドリフト</option><option>ショルダープレス</option><option>ラットプルダウン</option></select></label><label>種目を追加<div class="inline-add"><input id="newExercise" placeholder="例：インクラインベンチ"><button type="button" id="addExerciseBtn">追加</button></div></label>
       <div class="form-grid"><label>重量(kg)<input name="weight" type="number" step="0.5" min="0" required></label><label>回数<input name="reps" type="number" min="1" required></label></div>
       <div class="form-grid"><label>セット<input name="sets" type="number" min="1" value="3" required></label><label>RPE<input name="rpe" type="number" step="0.5" min="5" max="10" value="8" required></label></div>
-      <p class="hint">推定1RMは Epley式をベースに、RPEから残存回数(RIR)を推定して補正します。</p>
+      <label>メモ<textarea name="note" rows="3" placeholder="フォーム・体調・指導メモなど"></textarea></label><p class="hint">推定1RMは Epley式をベースに、RPEから残存回数(RIR)を推定して補正します。</p>
       <div class="dialog-actions"><button type="button" data-close>キャンセル</button><button class="primary" value="default">保存</button></div>
     </form>
   </dialog>
 
   <dialog id="bodyDialog">
     <form id="bodyForm" method="dialog">
-      <h2>身体・生活データを記録</h2>
+      <h2 id="bodyDialogTitle">身体・生活データを記録</h2>
       <label>日付<input name="date" type="date" required></label>
       <div class="form-grid"><label>体重(kg)<input name="bodyWeight" type="number" step="0.1" required></label><label>体脂肪率(%)<input name="bodyFat" type="number" step="0.1"></label></div>
       <div class="form-grid"><label>水分量(L)<input name="water" type="number" step="0.1"></label><label>睡眠(時間)<input name="sleep" type="number" step="0.1"></label></div>
@@ -247,6 +265,6 @@
     </form>
   </dialog>
 
-  <script src="app.js?v=10"></script>
+  <script src="app.js?v=11"></script>
 </body>
 </html>

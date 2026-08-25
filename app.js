@@ -115,6 +115,9 @@ async function bootCloud(){
 }
 
 let periodDays=30;
+let currentView='dashboard';
+let editingTrainingId=null;
+let editingBodyId=null;
 
 function clone(x){return JSON.parse(JSON.stringify(x))}
 function normalizeState(x){
@@ -178,7 +181,20 @@ function download(name,text,type='text/plain'){
 }
 
 document.querySelectorAll('[data-open]').forEach(b=>b.onclick=()=>{
-  const d=document.getElementById(b.dataset.open+'Dialog');
+  const type=b.dataset.open;
+  const d=document.getElementById(type+'Dialog');
+  if(type==='training'){
+    editingTrainingId=null;
+    document.getElementById('trainingDialogTitle').textContent='トレーニングを記録';
+    document.getElementById('trainingForm').reset();
+    document.getElementById('trainingForm').elements.sets.value=3;
+    document.getElementById('trainingForm').elements.rpe.value=8;
+  }
+  if(type==='body'){
+    editingBodyId=null;
+    document.getElementById('bodyDialogTitle').textContent='身体・生活データを記録';
+    document.getElementById('bodyForm').reset();
+  }
   const date=d.querySelector('[name=date]'); if(date) date.value=today();
   d.showModal();
 });
@@ -186,19 +202,33 @@ document.querySelectorAll('[data-close]').forEach(b=>b.onclick=()=>b.closest('di
 
 document.getElementById('trainingForm').addEventListener('submit',e=>{
   const f=new FormData(e.currentTarget);
-  state.training.push({
-    id:crypto.randomUUID(),clientId:state.activeClientId,date:f.get('date'),exercise:f.get('exercise'),
-    weight:+f.get('weight'),reps:+f.get('reps'),sets:+f.get('sets'),rpe:+f.get('rpe')
-  });
+  const payload={
+    clientId:state.activeClientId,date:f.get('date'),exercise:f.get('exercise'),
+    weight:+f.get('weight'),reps:+f.get('reps'),sets:+f.get('sets'),rpe:+f.get('rpe'),note:f.get('note')||''
+  };
+  if(editingTrainingId){
+    const row=state.training.find(x=>x.id===editingTrainingId);
+    if(row)Object.assign(row,payload);
+  }else{
+    state.training.push({id:crypto.randomUUID(),...payload});
+  }
+  editingTrainingId=null;
   save();setTimeout(render);
 });
 document.getElementById('bodyForm').addEventListener('submit',e=>{
   const f=new FormData(e.currentTarget);
-  state.body.push({
-    id:crypto.randomUUID(),clientId:state.activeClientId,date:f.get('date'),
+  const payload={
+    clientId:state.activeClientId,date:f.get('date'),
     bodyWeight:+f.get('bodyWeight'),bodyFat:+f.get('bodyFat')||null,water:+f.get('water')||null,
     sleep:+f.get('sleep')||null,steps:+f.get('steps')||null,condition:+f.get('condition')||null,note:f.get('note')||''
-  });
+  };
+  if(editingBodyId){
+    const row=state.body.find(x=>x.id===editingBodyId);
+    if(row)Object.assign(row,payload);
+  }else{
+    state.body.push({id:crypto.randomUUID(),...payload});
+  }
+  editingBodyId=null;
   save();setTimeout(render);
 });
 
@@ -297,9 +327,39 @@ document.getElementById('addExerciseBtn').onclick=()=>{
   if(v&&!state.exercises.includes(v)){state.exercises.push(v);save();refreshExercises();document.getElementById('exerciseSelect').value=v}
   input.value='';
 };
+function editTraining(id){
+  const x=state.training.find(r=>r.id===id);if(!x)return;
+  editingTrainingId=id;
+  const form=document.getElementById('trainingForm');
+  document.getElementById('trainingDialogTitle').textContent='トレーニング記録を編集';
+  refreshExercises();
+  form.elements.date.value=x.date||today();
+  form.elements.exercise.value=x.exercise||'';
+  form.elements.weight.value=x.weight??'';
+  form.elements.reps.value=x.reps??'';
+  form.elements.sets.value=x.sets??1;
+  form.elements.rpe.value=x.rpe??8;
+  form.elements.note.value=x.note||'';
+  document.getElementById('trainingDialog').showModal();
+}
+function editBody(id){
+  const x=state.body.find(r=>r.id===id);if(!x)return;
+  editingBodyId=id;
+  const form=document.getElementById('bodyForm');
+  document.getElementById('bodyDialogTitle').textContent='身体・生活データを編集';
+  form.elements.date.value=x.date||today();
+  form.elements.bodyWeight.value=x.bodyWeight??'';
+  form.elements.bodyFat.value=x.bodyFat??'';
+  form.elements.water.value=x.water??'';
+  form.elements.sleep.value=x.sleep??'';
+  form.elements.steps.value=x.steps??'';
+  form.elements.condition.value=x.condition??'';
+  form.elements.note.value=x.note||'';
+  document.getElementById('bodyDialog').showModal();
+}
 function removeTraining(id){if(confirm('このトレーニング記録を削除しますか？')){state.training=state.training.filter(x=>x.id!==id);save();render()}}
 function removeBody(id){if(confirm('この身体・生活データを削除しますか？')){state.body=state.body.filter(x=>x.id!==id);save();render()}}
-window.removeTraining=removeTraining;window.removeBody=removeBody;
+window.editTraining=editTraining;window.editBody=editBody;window.removeTraining=removeTraining;window.removeBody=removeBody;
 
 
 function renderClientSearchResults(query){
@@ -338,8 +398,7 @@ function renderClientList(){
 }
 clientList?.addEventListener('click',e=>{
   const btn=e.target.closest('[data-client-card]');if(!btn)return;
-  state.activeClientId=btn.dataset.clientCard;save();render();
-  document.getElementById('clientsSection')?.scrollIntoView({behavior:'smooth',block:'start'});
+  state.activeClientId=btn.dataset.clientCard;save();render();applyView('clients');
 });
 clientListSearch?.addEventListener('input',renderClientList);
 document.getElementById('addClientShortcut')?.addEventListener('click',()=>{
@@ -449,6 +508,7 @@ function render(){
     ['weightChart','waterChart','sleepChart','stepsChart','ormChart','volumeChart','exerciseWeightChart','exerciseOrmChart','exerciseVolumeChart'].forEach(id=>{
       const s=document.getElementById(id);if(s){s.innerHTML='';emptyChart(s)}
     });
+    applyView(currentView);
     return;
   }
 
@@ -491,14 +551,14 @@ function render(){
   ];
   document.getElementById('comparisonStrip').innerHTML='<strong>前期間比</strong>'+comp.map(([l,v,cl])=>`<div class="compare-item"><span class="compare-label">${l}</span><span class="compare-value ${cl}">${v}</span></div>`).join('');
 
-  document.getElementById('trainingTable').innerHTML=tr.slice().reverse().slice(0,20).map(x=>`<tr><td>${x.date}</td><td>${esc(x.exercise)}</td><td>${x.weight}kg</td><td>${x.reps}</td><td>${x.rpe}</td><td>${n(e1rm(x.weight,x.reps,x.rpe))}kg</td><td><button class="action-btn" onclick="removeTraining('${x.id}')">削除</button></td></tr>`).join('')||'<tr><td colspan="7">まだ記録がありません</td></tr>';
+  document.getElementById('trainingTable').innerHTML=tr.slice().reverse().slice(0,20).map(x=>`<tr><td>${x.date}</td><td>${esc(x.exercise)}</td><td>${x.weight}kg</td><td>${x.reps}</td><td>${x.rpe}</td><td>${n(e1rm(x.weight,x.reps,x.rpe))}kg</td><td><div class="table-actions"><button class="edit-btn" onclick="editTraining('${x.id}')">編集</button><button class="action-btn" onclick="removeTraining('${x.id}')">削除</button></div></td></tr>`).join('')||'<tr><td colspan="7">まだ記録がありません</td></tr>';
 
   const last7=bdAll.slice(-7);
   document.getElementById('conditionSummary').innerHTML=[
     ['💧',avg(last7,'water'),'L','平均水分'],['😴',avg(last7,'sleep'),'h','平均睡眠'],['🚶',avg(last7,'steps'),'','平均歩数'],['⚡',avg(last7,'condition'),'/10','平均体調']
   ].map(([i,v,u,t])=>`<div class="condition"><div class="icon">${i}</div><div class="num">${v==null?'—':(u===''?Math.round(v).toLocaleString():n(v))}${v==null?'':u}</div><div class="txt">${t}</div></div>`).join('');
 
-  document.getElementById('bodyTable').innerHTML=bdAll.slice().reverse().slice(0,20).map(x=>`<tr><td>${x.date}</td><td>${x.bodyWeight||'—'}</td><td>${x.bodyFat||'—'}</td><td>${x.water||'—'}</td><td>${x.sleep||'—'}</td><td>${x.steps?Number(x.steps).toLocaleString():'—'}</td><td>${x.condition||'—'}</td><td><button class="action-btn" onclick="removeBody('${x.id}')">削除</button></td></tr>`).join('')||'<tr><td colspan="8">まだ記録がありません</td></tr>';
+  document.getElementById('bodyTable').innerHTML=bdAll.slice().reverse().slice(0,20).map(x=>`<tr><td>${x.date}</td><td>${x.bodyWeight||'—'}</td><td>${x.bodyFat||'—'}</td><td>${x.water||'—'}</td><td>${x.sleep||'—'}</td><td>${x.steps?Number(x.steps).toLocaleString():'—'}</td><td>${x.condition||'—'}</td><td><div class="table-actions"><button class="edit-btn" onclick="editBody('${x.id}')">編集</button><button class="action-btn" onclick="removeBody('${x.id}')">削除</button></div></td></tr>`).join('')||'<tr><td colspan="8">まだ記録がありません</td></tr>';
 
   const startWeight=bd.length?bd.find(x=>x.bodyWeight)?.bodyWeight:null;
   const endWeight=bd.length?[...bd].reverse().find(x=>x.bodyWeight)?.bodyWeight:null;
@@ -591,6 +651,7 @@ function render(){
   drawLine('stepsChart',bd.filter(x=>x.steps).map(x=>({date:x.date,value:x.steps})));
   drawLine('ormChart',tr.map(x=>({date:x.date,value:e1rm(x.weight,x.reps,x.rpe)})));
   drawBars('volumeChart',tr.map(x=>({date:x.date,value:x.weight*x.reps*x.sets})));
+  applyView(currentView);
 }
 
 function svgEl(name,attrs={}){const e=document.createElementNS('http://www.w3.org/2000/svg',name);for(const[k,v]of Object.entries(attrs))e.setAttribute(k,v);return e}
@@ -616,32 +677,34 @@ function drawBars(id,data){
   data.forEach((v,i)=>s.appendChild(svgEl('rect',{x:sc.x(i)-bw/2,y:sc.y(v.value),width:bw,height:sc.H-sc.p-sc.y(v.value),rx:3,class:'bar'})));
 }
 
-const navTargets={
-  dashboard:'kpiGrid',
-  clients:'clientsSection',
-  training:'trainingSection',
-  body:'bodySection',
-  condition:'conditionSection',
-  report:'reportSection'
+const viewTitles={
+  dashboard:'ダッシュボード',
+  clients:'クライアント一覧',
+  training:'トレーニング',
+  body:'身体データ',
+  condition:'生活・コンディション',
+  report:'レポート'
 };
 
 function setActiveNav(view){
   document.querySelectorAll('.nav-item[data-view]').forEach(b=>{
-    b.classList.toggle('active', b.dataset.view===view);
+    b.classList.toggle('active',b.dataset.view===view);
   });
 }
-
+function applyView(view){
+  currentView=viewTitles[view]?view:'dashboard';
+  document.querySelectorAll('[data-section]').forEach(el=>{
+    el.classList.toggle('view-hidden',el.dataset.section!==currentView);
+  });
+  const title=document.getElementById('viewTitle');
+  if(title)title.textContent=viewTitles[currentView];
+  setActiveNav(currentView);
+  window.scrollTo({top:0,behavior:'instant'});
+}
 document.querySelectorAll('.nav-item[data-view]').forEach(btn=>{
   btn.addEventListener('click',()=>{
-    const view=btn.dataset.view;
-    setActiveNav(view);
     closeMobileMenu();
-    const id=navTargets[view];
-    const target=document.getElementById(id);
-    if(!target) return;
-    target.scrollIntoView({behavior:'smooth',block:'start'});
-    target.classList.add('section-flash');
-    setTimeout(()=>target.classList.remove('section-flash'),800);
+    applyView(btn.dataset.view);
   });
 });
 
