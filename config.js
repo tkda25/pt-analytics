@@ -1,2 +1,2 @@
-window.PT_SUPABASE_URL = "PASTE_PROJECT_URL_HERE";
-window.PT_SUPABASE_PUBLISHABLE_KEY = "PASTE_PUBLISHABLE_KEY_HERE";
+window.PT_SUPABASE_URL = "https://kurcfvzdpalmfswjvkwz.supabase.co";
+window.PT_SUPABASE_PUBLISHABLE_KEY = "sb_publishable_zcvCq7j0scm4fEEaZzJDaQ_Y5Pt5lPy";
