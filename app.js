@@ -4,14 +4,15 @@ const defaultState={
   activeClientId:'c1',
   clients:[{id:'c1',name:'山田 太郎',age:28,sex:'男性',height:178,goal:'減量・筋力向上'}],
   training:[],
-  body:[]
+  body:[],
+  exercises:['ベンチプレス','スクワット','デッドリフト','ショルダープレス','ラットプルダウン']
 };
 let state=load();
 
 function load(){
   try{
     const x=JSON.parse(localStorage.getItem(KEY));
-    if(x && Array.isArray(x.clients)) return x;
+    if(x && Array.isArray(x.clients)){x.exercises=x.exercises||structuredClone(defaultState.exercises);return x;}
   }catch(e){}
   return structuredClone(defaultState);
 }
@@ -36,7 +37,7 @@ document.getElementById('trainingForm').addEventListener('submit',e=>{
 });
 document.getElementById('bodyForm').addEventListener('submit',e=>{
   const f=new FormData(e.currentTarget);
-  state.body.push({id:crypto.randomUUID(),clientId:state.activeClientId,date:f.get('date'),bodyWeight:+f.get('bodyWeight'),bodyFat:+f.get('bodyFat')||null,water:+f.get('water')||null,sleep:+f.get('sleep')||null,steps:+f.get('steps')||null,condition:+f.get('condition')||null});
+  state.body.push({id:crypto.randomUUID(),clientId:state.activeClientId,date:f.get('date'),bodyWeight:+f.get('bodyWeight'),bodyFat:+f.get('bodyFat')||null,water:+f.get('water')||null,sleep:+f.get('sleep')||null,steps:+f.get('steps')||null,condition:+f.get('condition')||null,note:f.get('note')||''});
   save(); setTimeout(render);
 });
 
@@ -67,6 +68,39 @@ document.getElementById('resetBtn').onclick=()=>{
 
 function esc(s){return String(s??'').replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]))}
 function latest(a,k){const x=a.filter(v=>v[k]!=null&&v[k]!==0);return x.length?x[x.length-1][k]:null}
+
+let periodDays=30;
+const exerciseFilter=document.getElementById('exerciseFilter');
+document.getElementById('periodTabs').onclick=e=>{
+  if(!e.target.dataset.days)return;
+  periodDays=+e.target.dataset.days;
+  document.querySelectorAll('#periodTabs button').forEach(b=>b.classList.toggle('active',b===e.target));
+  render();
+};
+exerciseFilter.onchange=render;
+
+function refreshExercises(){
+  const sel=document.getElementById('exerciseSelect');
+  const current=sel.value;
+  sel.innerHTML=state.exercises.map(x=>`<option>${esc(x)}</option>`).join('');
+  if(state.exercises.includes(current))sel.value=current;
+  const fcur=exerciseFilter.value;
+  exerciseFilter.innerHTML='<option value="">全種目</option>'+state.exercises.map(x=>`<option>${esc(x)}</option>`).join('');
+  exerciseFilter.value=fcur;
+}
+document.getElementById('addExerciseBtn').onclick=()=>{
+  const input=document.getElementById('newExercise'),v=input.value.trim();
+  if(v&&!state.exercises.includes(v)){state.exercises.push(v);save();refreshExercises();document.getElementById('exerciseSelect').value=v}
+  input.value='';
+};
+function withinPeriod(x){
+  if(!periodDays)return true;
+  const cutoff=new Date();cutoff.setDate(cutoff.getDate()-periodDays);
+  return new Date(x.date+'T00:00:00')>=cutoff;
+}
+function removeTraining(id){if(confirm('このトレーニング記録を削除しますか？')){state.training=state.training.filter(x=>x.id!==id);save();render()}}
+window.removeTraining=removeTraining;
+
 function render(){
   const c=active(); if(!c)return;
   document.getElementById('clientTitle').textContent=c.name;
@@ -74,10 +108,10 @@ function render(){
   document.getElementById('clientMeta').textContent=`${c.age||'—'}歳 / ${c.sex||'—'} / ${c.height||'—'}cm`;
   document.getElementById('clientGoal').textContent='目標：'+(c.goal||'未設定');
 
-  const tr=clientRows(state.training), bd=clientRows(state.body);
+  refreshExercises(); const trAll=clientRows(state.training), bd=clientRows(state.body); const tr=trAll.filter(withinPeriod).filter(x=>!exerciseFilter.value||x.exercise===exerciseFilter.value);
   const lastW=latest(bd,'bodyWeight'), lastWater=latest(bd,'water'), lastSleep=latest(bd,'sleep'), lastSteps=latest(bd,'steps');
-  const best=tr.length?Math.max(...tr.map(x=>e1rm(x.weight,x.reps,x.rpe))):null;
-  const vol=tr.reduce((s,x)=>s+x.weight*x.reps*x.sets,0);
+  const best=trAll.length?Math.max(...trAll.map(x=>e1rm(x.weight,x.reps,x.rpe))):null;
+  const vol=trAll.reduce((s,x)=>s+x.weight*x.reps*x.sets,0);
   const kpis=[
     ['最新体重',lastW==null?'—':n(lastW)+' kg'],
     ['水分量',lastWater==null?'—':n(lastWater)+' L'],
@@ -87,7 +121,7 @@ function render(){
   ];
   document.getElementById('kpiGrid').innerHTML=kpis.map(x=>`<article class="card kpi"><div class="label">${x[0]}</div><div class="value">${x[1]}</div><div class="change">端末内に自動保存</div></article>`).join('');
 
-  document.getElementById('trainingTable').innerHTML=tr.slice().reverse().slice(0,10).map(x=>`<tr><td>${x.date}</td><td>${esc(x.exercise)}</td><td>${x.weight}kg</td><td>${x.reps}</td><td>${x.rpe}</td><td>${n(e1rm(x.weight,x.reps,x.rpe))}kg</td></tr>`).join('') || '<tr><td colspan="6">まだ記録がありません</td></tr>';
+  document.getElementById('trainingTable').innerHTML=tr.slice().reverse().slice(0,10).map(x=>`<tr><td>${x.date}</td><td>${esc(x.exercise)}</td><td>${x.weight}kg</td><td>${x.reps}</td><td>${x.rpe}</td><td>${n(e1rm(x.weight,x.reps,x.rpe))}kg</td><td><button class="action-btn" onclick="removeTraining(\'${x.id}\')">削除</button></td></tr>`).join('') || '<tr><td colspan="7">まだ記録がありません</td></tr>';
 
   const last7=bd.slice(-7);
   const avg=k=>{const a=last7.map(x=>x[k]).filter(Boolean);return a.length?a.reduce((s,v)=>s+v,0)/a.length:null};
