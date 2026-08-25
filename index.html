@@ -3,10 +3,29 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <title>PT Analytics v4</title>
+  <title>PT Analytics v9</title>
   <link rel="stylesheet" href="style.css?v=8fix1" />
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="config.js"></script>
 </head>
 <body>
+    <section id="authGate" class="auth-gate">
+    <div class="auth-card">
+      <div class="auth-brand">🏋️ PT Analytics</div>
+      <h1>クラウドログイン</h1>
+      <p>iPhone・iPad・PCで同じデータを使えます。</p>
+      <form id="authForm">
+        <label>メールアドレス<input id="authEmail" type="email" autocomplete="email" required></label>
+        <label>パスワード<input id="authPassword" type="password" autocomplete="current-password" minlength="6" required></label>
+        <div class="auth-actions">
+          <button type="submit" class="primary">ログイン</button>
+          <button type="button" id="signupBtn" class="secondary-btn">新規登録</button>
+        </div>
+        <p id="authMessage" class="auth-message"></p>
+      </form>
+    </div>
+  </section>
+
   <button id="mobileMenuBtn" class="mobile-menu-btn" aria-label="メニューを開く">☰</button>
   <div id="sidebarBackdrop" class="sidebar-backdrop" hidden></div>
   <div class="app-shell">
@@ -35,7 +54,7 @@
             <div id="clientSearchResults" class="client-search-results" hidden></div>
           </div>
           <button id="clientBtn" class="ghost-btn">クライアント管理</button>
-          <button id="backupBtn" class="ghost-btn">バックアップ</button>
+          <button id="backupBtn" class="ghost-btn">バックアップ</button><button id="accountBtn" class="ghost-btn">アカウント</button>
           <button id="resetBtn" class="ghost-btn danger-lite">初期化</button>
         </div>
       </header>
@@ -213,6 +232,16 @@
     </form>
   </dialog>
 
-  <script src="app.js?v=8fix1"></script>
+    <dialog id="accountDialog">
+    <form method="dialog">
+      <h2>アカウント</h2>
+      <p id="accountEmail" class="hint"></p>
+      <div class="account-status"><span>保存先</span><strong>Supabase クラウド</strong></div>
+      <div class="account-status"><span>同期状態</span><strong id="cloudSyncStatus">確認中</strong></div>
+      <div class="dialog-actions"><button type="button" id="logoutBtn" class="danger-btn">ログアウト</button><button type="button" data-close>閉じる</button></div>
+    </form>
+  </dialog>
+
+  <script src="app.js?v=9"></script>
 </body>
 </html>

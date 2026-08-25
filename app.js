@@ -9,6 +9,75 @@ const defaultState={
   exercises:['ベンチプレス','スクワット','デッドリフト','ショルダープレス','ラットプルダウン']
 };
 let state=load();
+
+const cloudConfigReady =
+  typeof window.PT_SUPABASE_URL==='string' &&
+  window.PT_SUPABASE_URL.startsWith('https://') &&
+  typeof window.PT_SUPABASE_PUBLISHABLE_KEY==='string' &&
+  window.PT_SUPABASE_PUBLISHABLE_KEY.startsWith('sb_');
+const sb = cloudConfigReady ? window.supabase.createClient(window.PT_SUPABASE_URL,window.PT_SUPABASE_PUBLISHABLE_KEY) : null;
+let currentUser=null, cloudReady=false, cloudBusy=false, suppressCloudSave=false, cloudSaveTimer=null;
+
+function setAuthMessage(msg,type=''){const e=document.getElementById('authMessage');if(e){e.textContent=msg||'';e.className='auth-message'+(type?' '+type:'')}}
+function setSyncStatus(msg){const e=document.getElementById('cloudSyncStatus');if(e)e.textContent=msg}
+function cloudUuid(){return crypto.randomUUID()}
+function cloudIsUuid(v){return /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(String(v||''))}
+function ensureUuidState(){
+  const map=new Map();
+  state.clients.forEach(c=>{const old=c.id;if(!cloudIsUuid(c.id))c.id=cloudUuid();map.set(old,c.id)});
+  state.training.forEach(r=>{if(!cloudIsUuid(r.id))r.id=cloudUuid();if(map.has(r.clientId))r.clientId=map.get(r.clientId)});
+  state.body.forEach(r=>{if(!cloudIsUuid(r.id))r.id=cloudUuid();if(map.has(r.clientId))r.clientId=map.get(r.clientId)});
+  if(map.has(state.activeClientId))state.activeClientId=map.get(state.activeClientId);
+  if(!state.clients.some(c=>c.id===state.activeClientId)&&state.clients[0])state.activeClientId=state.clients[0].id;
+}
+function cloudClientRow(c){return{id:c.id,name:c.name,age:c.age||null,sex:c.sex||null,height:c.height||null,goal:c.goal||null}}
+function cloudTrainingRow(r){const orm=e1rm(r.weight,r.reps,r.rpe);return{id:r.id,client_id:r.clientId,training_date:r.date,exercise:r.exercise,weight:r.weight,reps:r.reps,sets:r.sets,rpe:r.rpe||null,estimated_1rm:Number.isFinite(orm)?orm:null,volume:(+r.weight||0)*(+r.reps||0)*(+r.sets||0),note:r.note||null}}
+function cloudBodyRow(r){return{id:r.id,client_id:r.clientId,record_date:r.date,body_weight:r.bodyWeight||null,body_fat:r.bodyFat||null,water:r.water||null,sleep:r.sleep||null,steps:r.steps||null,condition:r.condition||null,note:r.note||null}}
+function localFromCloud(c,t,b){return{activeClientId:c[0]?.id||'',clients:c.map(x=>({id:x.id,name:x.name,age:x.age||'',sex:x.sex||'',height:x.height||'',goal:x.goal||''})),training:t.map(x=>({id:x.id,clientId:x.client_id,date:x.training_date,exercise:x.exercise,weight:+x.weight,reps:x.reps,sets:x.sets,rpe:x.rpe==null?10:+x.rpe,note:x.note||''})),body:b.map(x=>({id:x.id,clientId:x.client_id,date:x.record_date,bodyWeight:x.body_weight==null?null:+x.body_weight,bodyFat:x.body_fat==null?null:+x.body_fat,water:x.water==null?null:+x.water,sleep:x.sleep==null?null:+x.sleep,steps:x.steps,condition:x.condition,note:x.note||''})),exercises:state.exercises||clone(defaultState.exercises)}}
+async function fetchCloudState(){
+  if(!sb||!currentUser)return false;
+  setSyncStatus('読み込み中');
+  const [c,t,b]=await Promise.all([
+    sb.from('clients').select('*').order('created_at'),
+    sb.from('training_records').select('*').order('training_date'),
+    sb.from('body_records').select('*').order('record_date')
+  ]);
+  if(c.error||t.error||b.error){console.error(c.error||t.error||b.error);setSyncStatus('読み込みエラー');return false}
+  if(c.data.length===0)return null;
+  suppressCloudSave=true;state=localFromCloud(c.data,t.data,b.data);
+  const raw=JSON.stringify(state);localStorage.setItem(KEY,raw);localStorage.setItem('ptAnalyticsV2',raw);
+  suppressCloudSave=false;setSyncStatus('同期済み');render();return true;
+}
+async function pushFullStateToCloud(){
+  if(!sb||!currentUser||cloudBusy)return;
+  cloudBusy=true;setSyncStatus('保存中');
+  try{
+    ensureUuidState();
+    if(state.clients.length){const {error}=await sb.from('clients').upsert(state.clients.map(cloudClientRow),{onConflict:'id'});if(error)throw error}
+    if(state.training.length){const {error}=await sb.from('training_records').upsert(state.training.map(cloudTrainingRow),{onConflict:'id'});if(error)throw error}
+    if(state.body.length){const {error}=await sb.from('body_records').upsert(state.body.map(cloudBodyRow),{onConflict:'id'});if(error)throw error}
+    setSyncStatus('同期済み');
+  }catch(e){console.error(e);setSyncStatus('保存エラー')}
+  cloudBusy=false;
+}
+function scheduleCloudSave(){if(!cloudReady||suppressCloudSave||!currentUser)return;clearTimeout(cloudSaveTimer);cloudSaveTimer=setTimeout(pushFullStateToCloud,500)}
+async function enterApp(user){
+  currentUser=user;document.getElementById('authGate')?.classList.add('hidden');
+  const ae=document.getElementById('accountEmail');if(ae)ae.textContent=user.email||'';
+  const loaded=await fetchCloudState();
+  if(loaded===null){ensureUuidState();await pushFullStateToCloud();await fetchCloudState()}
+  cloudReady=true;setSyncStatus('同期済み');
+}
+async function bootCloud(){
+  if(!cloudConfigReady){setAuthMessage('config.js にSupabase設定を入れてください。','error');return}
+  const {data:{session}}=await sb.auth.getSession();
+  if(session?.user)await enterApp(session.user);
+  sb.auth.onAuthStateChange(async(_e,session)=>{
+    if(session?.user && (!currentUser||currentUser.id!==session.user.id))await enterApp(session.user);
+    if(!session?.user){currentUser=null;cloudReady=false;document.getElementById('authGate')?.classList.remove('hidden')}
+  });
+}
+
 let periodDays=30;
 
 function clone(x){return JSON.parse(JSON.stringify(x))}
@@ -59,7 +128,7 @@ function load(){
   }
   return clone(defaultState);
 }
-function save(){const raw=JSON.stringify(state);localStorage.setItem(KEY,raw);localStorage.setItem('ptAnalyticsV2',raw)}
+function save(){const raw=JSON.stringify(state);localStorage.setItem(KEY,raw);localStorage.setItem('ptAnalyticsV2',raw);scheduleCloudSave()}
 function active(){return state.clients.find(c=>c.id===state.activeClientId)||state.clients[0]}
 function today(){return new Date().toISOString().slice(0,10)}
 function n(v,d=1){const x=Number(v);return Number.isFinite(x)?x.toFixed(d):'—'}
@@ -527,5 +596,25 @@ document.querySelectorAll('.nav-item[data-view]').forEach(btn=>{
     setTimeout(()=>target.classList.remove('section-flash'),800);
   });
 });
+
+
+document.getElementById('authForm')?.addEventListener('submit',async e=>{
+  e.preventDefault();if(!sb){setAuthMessage('Supabase設定が未完了です。','error');return}
+  const email=document.getElementById('authEmail').value.trim(),password=document.getElementById('authPassword').value;
+  setAuthMessage('ログイン中...');
+  const {error}=await sb.auth.signInWithPassword({email,password});
+  if(error)setAuthMessage(error.message,'error');
+});
+document.getElementById('signupBtn')?.addEventListener('click',async()=>{
+  if(!sb){setAuthMessage('Supabase設定が未完了です。','error');return}
+  const email=document.getElementById('authEmail').value.trim(),password=document.getElementById('authPassword').value;
+  if(!email||password.length<6){setAuthMessage('メールアドレスと6文字以上のパスワードを入力してください。','error');return}
+  setAuthMessage('登録中...');
+  const {data,error}=await sb.auth.signUp({email,password});
+  if(error)setAuthMessage(error.message,'error'); else if(data.session)setAuthMessage('登録しました。','success'); else setAuthMessage('確認メールを確認してください。','success');
+});
+document.getElementById('accountBtn')?.addEventListener('click',()=>document.getElementById('accountDialog')?.showModal());
+document.getElementById('logoutBtn')?.addEventListener('click',async()=>{await sb?.auth.signOut();document.getElementById('accountDialog')?.close()});
+bootCloud();
 
 render();
