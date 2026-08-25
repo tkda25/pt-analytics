@@ -295,7 +295,7 @@ function loadClientForm(c){
   if(!c)return;
   ['name','age','sex','height','goal'].forEach(k=>clientForm.elements[k].value=c[k]??'');
 }
-document.getElementById('menuResetBtn').onclick=()=>{closeMobileMenu();
+document.getElementById('menuResetBtn')?.addEventListener('click',()=>{closeMobileMenu();
   if(confirm('この端末に保存されたPT Analyticsの全データを初期化しますか？')){
     state=clone(defaultState);save();render();
   }
@@ -424,7 +424,7 @@ sidebarBackdrop?.addEventListener('click',closeMobileMenu);
 
 // Backup
 const backupDialog=document.getElementById('backupDialog');
-document.getElementById('backupBtn').onclick=()=>backupDialog.showModal();
+document.getElementById('menuBackupBtn')?.addEventListener('click',()=>{closeMobileMenu();backupDialog.showModal()});
 document.getElementById('exportBackupBtn').onclick=()=>{
   download(`pt-analytics-backup-${today()}.json`,JSON.stringify(state,null,2),'application/json');
 };
