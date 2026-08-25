@@ -124,3 +124,46 @@ html{scroll-behavior:smooth}
   .exercise-progress-grid{grid-template-columns:1fr 1fr}
   .progress-controls{width:100%}.progress-controls select{flex:1}
 }
+
+/* v8 fixed: force drawer navigation on phone/tablet */
+@media(max-width:1050px){
+  body{padding-top:62px!important}
+  .mobile-menu-btn{
+    display:flex!important;
+    align-items:center;
+    justify-content:center;
+    position:fixed!important;
+    left:14px!important;
+    top:14px!important;
+    z-index:100!important;
+  }
+  .mobile-menu-close{display:flex!important;align-items:center;justify-content:center}
+  .app-shell{display:block!important}
+  .sidebar{
+    display:block!important;
+    position:fixed!important;
+    left:0!important;
+    top:0!important;
+    bottom:0!important;
+    width:min(82vw,320px)!important;
+    height:100dvh!important;
+    z-index:90!important;
+    transform:translateX(-110%)!important;
+    transition:transform .2s ease!important;
+    padding:58px 14px 20px!important;
+    overflow-y:auto!important;
+  }
+  .sidebar.open{transform:translateX(0)!important}
+  .sidebar nav{display:grid!important;grid-template-columns:1fr!important;gap:8px!important}
+  .nav-item{
+    display:block!important;
+    font-size:15px!important;
+    text-align:left!important;
+    padding:13px 14px!important;
+    min-height:46px!important;
+  }
+  .brand{display:block!important;font-size:20px!important;padding:6px 8px 20px!important}
+  .brand span{display:inline!important;font-size:20px!important}
+  .sidebar-backdrop{z-index:80!important}
+  main{padding-top:12px!important}
+}
