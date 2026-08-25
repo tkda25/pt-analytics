@@ -3,10 +3,10 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <title>PT Analytics v9</title>
-  <link rel="stylesheet" href="style.css?v=8fix1" />
+  <title>PT Analytics v10</title>
+  <link rel="stylesheet" href="style.css?v=10" />
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-  <script src="config.js"></script>
+  <script src="config.js?v=10"></script>
 </head>
 <body>
     <section id="authGate" class="auth-gate">
@@ -45,12 +45,12 @@
       <header class="topbar">
         <div class="client-heading">
           <p class="eyebrow">クライアント詳細</p>
-          <h1 id="clientTitle">山田 太郎</h1>
+          <h1 id="clientTitle">未登録</h1>
         </div>
         <div class="top-actions">
           <div class="client-search-wrap">
             <input id="clientSearch" class="client-search" type="search" placeholder="名前で検索" autocomplete="off" inputmode="search" />
-            <select id="quickClientSelect" class="header-select" aria-label="クライアント切替"></select>
+            <select id="quickClientSelect" class="header-select" aria-label="クライアント切替"><option value="">未登録</option></select>
             <div id="clientSearchResults" class="client-search-results" hidden></div>
           </div>
           <button id="clientBtn" class="ghost-btn">クライアント管理</button>
@@ -61,9 +61,13 @@
 
       <section class="profile-card card" id="clientsSection" data-section="clients">
         <div>
-          <h2><span id="clientName">山田 太郎</span> <span class="badge">アクティブ</span></h2>
-          <p id="clientMeta">28歳 / 男性 / 178cm</p>
-          <p id="clientGoal">目標：減量・筋力向上</p>
+          <h2><span id="clientName">未登録</span> <span class="badge">アクティブ</span></h2>
+          <p id="clientMeta">クライアントを登録してください</p>
+          <p id="clientGoal">目標：未登録</p>
+        </div>
+        <div id="noClientState" class="no-client-state" hidden>
+          <strong>クライアント未登録</strong>
+          <span>「＋ 新規クライアント」または「クライアント管理」から登録してください。</span>
         </div>
         <div class="quick-actions">
           <button data-open="training">＋ トレーニング記録</button>
@@ -238,10 +242,11 @@
       <p id="accountEmail" class="hint"></p>
       <div class="account-status"><span>保存先</span><strong>Supabase クラウド</strong></div>
       <div class="account-status"><span>同期状態</span><strong id="cloudSyncStatus">確認中</strong></div>
+      <button type="button" id="migrateLocalBtn" class="secondary-btn" style="width:100%;margin-top:12px">この端末の旧データをクラウドへ移行</button>
       <div class="dialog-actions"><button type="button" id="logoutBtn" class="danger-btn">ログアウト</button><button type="button" data-close>閉じる</button></div>
     </form>
   </dialog>
 
-  <script src="app.js?v=9"></script>
+  <script src="app.js?v=10"></script>
 </body>
 </html>

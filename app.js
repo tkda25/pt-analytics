@@ -2,8 +2,8 @@
 const KEY='ptAnalyticsV5';
 const LEGACY_KEYS=['ptAnalyticsV4','ptAnalyticsV3','ptAnalyticsV2','ptAnalytics'];
 const defaultState={
-  activeClientId:'c1',
-  clients:[{id:'c1',name:'山田 太郎',age:28,sex:'男性',height:178,goal:'減量・筋力向上'}],
+  activeClientId:'',
+  clients:[],
   training:[],
   body:[],
   exercises:['ベンチプレス','スクワット','デッドリフト','ショルダープレス','ラットプルダウン']
@@ -28,7 +28,7 @@ function ensureUuidState(){
   state.training.forEach(r=>{if(!cloudIsUuid(r.id))r.id=cloudUuid();if(map.has(r.clientId))r.clientId=map.get(r.clientId)});
   state.body.forEach(r=>{if(!cloudIsUuid(r.id))r.id=cloudUuid();if(map.has(r.clientId))r.clientId=map.get(r.clientId)});
   if(map.has(state.activeClientId))state.activeClientId=map.get(state.activeClientId);
-  if(!state.clients.some(c=>c.id===state.activeClientId)&&state.clients[0])state.activeClientId=state.clients[0].id;
+  if(!state.clients.some(c=>c.id===state.activeClientId))state.activeClientId=state.clients[0]?.id||'';
 }
 function cloudClientRow(c){return{id:c.id,name:c.name,age:c.age||null,sex:c.sex||null,height:c.height||null,goal:c.goal||null}}
 function cloudTrainingRow(r){const orm=e1rm(r.weight,r.reps,r.rpe);return{id:r.id,client_id:r.clientId,training_date:r.date,exercise:r.exercise,weight:r.weight,reps:r.reps,sets:r.sets,rpe:r.rpe||null,estimated_1rm:Number.isFinite(orm)?orm:null,volume:(+r.weight||0)*(+r.reps||0)*(+r.sets||0),note:r.note||null}}
@@ -43,7 +43,7 @@ async function fetchCloudState(){
     sb.from('body_records').select('*').order('record_date')
   ]);
   if(c.error||t.error||b.error){console.error(c.error||t.error||b.error);setSyncStatus('読み込みエラー');return false}
-  if(c.data.length===0)return null;
+  if(c.data.length===0){suppressCloudSave=true;state={activeClientId:'',clients:[],training:[],body:[],exercises:state.exercises||clone(defaultState.exercises)};const raw=JSON.stringify(state);localStorage.setItem(KEY,raw);localStorage.setItem('ptAnalyticsV2',raw);suppressCloudSave=false;setSyncStatus('同期済み');render();return 'empty';}
   suppressCloudSave=true;state=localFromCloud(c.data,t.data,b.data);
   const raw=JSON.stringify(state);localStorage.setItem(KEY,raw);localStorage.setItem('ptAnalyticsV2',raw);
   suppressCloudSave=false;setSyncStatus('同期済み');render();return true;
@@ -53,19 +53,55 @@ async function pushFullStateToCloud(){
   cloudBusy=true;setSyncStatus('保存中');
   try{
     ensureUuidState();
-    if(state.clients.length){const {error}=await sb.from('clients').upsert(state.clients.map(cloudClientRow),{onConflict:'id'});if(error)throw error}
-    if(state.training.length){const {error}=await sb.from('training_records').upsert(state.training.map(cloudTrainingRow),{onConflict:'id'});if(error)throw error}
-    if(state.body.length){const {error}=await sb.from('body_records').upsert(state.body.map(cloudBodyRow),{onConflict:'id'});if(error)throw error}
+
+    // 1) Upsert current local state.
+    if(state.clients.length){
+      const {error}=await sb.from('clients').upsert(state.clients.map(cloudClientRow),{onConflict:'id'});
+      if(error)throw error;
+    }
+    if(state.training.length){
+      const {error}=await sb.from('training_records').upsert(state.training.map(cloudTrainingRow),{onConflict:'id'});
+      if(error)throw error;
+    }
+    if(state.body.length){
+      const {error}=await sb.from('body_records').upsert(state.body.map(cloudBodyRow),{onConflict:'id'});
+      if(error)throw error;
+    }
+
+    // 2) Delete cloud rows that were deleted locally.
+    const [remoteClients,remoteTraining,remoteBody]=await Promise.all([
+      sb.from('clients').select('id'),
+      sb.from('training_records').select('id'),
+      sb.from('body_records').select('id')
+    ]);
+    if(remoteClients.error||remoteTraining.error||remoteBody.error)throw(remoteClients.error||remoteTraining.error||remoteBody.error);
+
+    const localClientIds=new Set(state.clients.map(x=>x.id));
+    const localTrainingIds=new Set(state.training.map(x=>x.id));
+    const localBodyIds=new Set(state.body.map(x=>x.id));
+
+    const delClientIds=(remoteClients.data||[]).map(x=>x.id).filter(id=>!localClientIds.has(id));
+    const delTrainingIds=(remoteTraining.data||[]).map(x=>x.id).filter(id=>!localTrainingIds.has(id));
+    const delBodyIds=(remoteBody.data||[]).map(x=>x.id).filter(id=>!localBodyIds.has(id));
+
+    // child rows first to avoid FK issues
+    if(delTrainingIds.length){const {error}=await sb.from('training_records').delete().in('id',delTrainingIds);if(error)throw error}
+    if(delBodyIds.length){const {error}=await sb.from('body_records').delete().in('id',delBodyIds);if(error)throw error}
+    if(delClientIds.length){const {error}=await sb.from('clients').delete().in('id',delClientIds);if(error)throw error}
+
     setSyncStatus('同期済み');
-  }catch(e){console.error(e);setSyncStatus('保存エラー')}
-  cloudBusy=false;
+  }catch(e){
+    console.error(e);
+    setSyncStatus('保存エラー');
+  }finally{
+    cloudBusy=false;
+  }
 }
 function scheduleCloudSave(){if(!cloudReady||suppressCloudSave||!currentUser)return;clearTimeout(cloudSaveTimer);cloudSaveTimer=setTimeout(pushFullStateToCloud,500)}
 async function enterApp(user){
   currentUser=user;document.getElementById('authGate')?.classList.add('hidden');
   const ae=document.getElementById('accountEmail');if(ae)ae.textContent=user.email||'';
-  const loaded=await fetchCloudState();
-  if(loaded===null){ensureUuidState();await pushFullStateToCloud();await fetchCloudState()}
+  await fetchCloudState();
   cloudReady=true;setSyncStatus('同期済み');
 }
 async function bootCloud(){
@@ -89,27 +125,13 @@ function normalizeState(x){
   const body=Array.isArray(x.body)?x.body:[];
   const exercises=Array.isArray(x.exercises)&&x.exercises.length?x.exercises:clone(defaultState.exercises);
 
-  // Older versions may have records without clientId. Attach those to the first known client.
-  let fallbackClientId=x.activeClientId || clients[0]?.id || base.clients[0].id;
   if(!clients.length){
-    // If old state only had profile-like fields, preserve what we can.
-    if(x.client && typeof x.client==='object'){
-      clients.push({
-        id:fallbackClientId,
-        name:x.client.name||'クライアント',
-        age:x.client.age||'',
-        sex:x.client.sex||'',
-        height:x.client.height||'',
-        goal:x.client.goal||''
-      });
-    }else{
-      clients.push(base.clients[0]);
-      fallbackClientId=base.clients[0].id;
-    }
+    return {activeClientId:'',clients:[],training:[],body:[],exercises};
   }
+
+  let fallbackClientId=x.activeClientId || clients[0]?.id || '';
   training.forEach(r=>{if(!r.clientId)r.clientId=fallbackClientId});
   body.forEach(r=>{if(!r.clientId)r.clientId=fallbackClientId});
-
   const activeClientId=clients.some(c=>c.id===x.activeClientId)?x.activeClientId:clients[0].id;
   return {activeClientId,clients,training,body,exercises};
 }
@@ -129,7 +151,7 @@ function load(){
   return clone(defaultState);
 }
 function save(){const raw=JSON.stringify(state);localStorage.setItem(KEY,raw);localStorage.setItem('ptAnalyticsV2',raw);scheduleCloudSave()}
-function active(){return state.clients.find(c=>c.id===state.activeClientId)||state.clients[0]}
+function active(){return state.clients.find(c=>c.id===state.activeClientId)||state.clients[0]||null}
 function today(){return new Date().toISOString().slice(0,10)}
 function n(v,d=1){const x=Number(v);return Number.isFinite(x)?x.toFixed(d):'—'}
 function esc(s){return String(s??'').replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]))}
@@ -206,7 +228,7 @@ clientSelect.onchange=()=>{
   loadClientForm(active());
   render();
 };
-quickClientSelect.onchange=()=>{state.activeClientId=quickClientSelect.value;save();render()};
+quickClientSelect.onchange=()=>{state.activeClientId=quickClientSelect.value||'';save();render()};
 document.getElementById('newClientBtn').onclick=()=>{clientForm.reset();clientSelect.value='';clientForm.elements.name.focus()};
 clientForm.addEventListener('submit',e=>{
   const f=new FormData(clientForm),selected=clientSelect.value;
@@ -217,20 +239,19 @@ clientForm.addEventListener('submit',e=>{
 });
 document.getElementById('deleteClientBtn').onclick=()=>{
   const c=active();if(!c)return;
-  if(state.clients.length<=1){alert('最後の1人は削除できません。');return}
   if(confirm(`${c.name} と、その記録をすべて削除しますか？`)){
     state.clients=state.clients.filter(x=>x.id!==c.id);
     state.training=state.training.filter(x=>x.clientId!==c.id);
     state.body=state.body.filter(x=>x.clientId!==c.id);
-    state.activeClientId=state.clients[0].id;save();clientDialog.close();render();
+    state.activeClientId=state.clients[0]?.id||'';save();clientDialog.close();render();
   }
 };
 function fillClientSelects(){
   const opts=state.clients.map(c=>`<option value="${c.id}">${esc(c.name)}</option>`).join('');
   clientSelect.innerHTML='<option value="">＋ 新規クライアント</option>'+opts;
-  quickClientSelect.innerHTML=opts;
-  clientSelect.value=state.activeClientId;
-  quickClientSelect.value=state.activeClientId;
+  quickClientSelect.innerHTML=state.clients.length?opts:'<option value="">未登録</option>';
+  clientSelect.value=state.activeClientId||'';
+  quickClientSelect.value=state.activeClientId||'';
   if(document.activeElement!==clientSearch){
     clientSearch.value=active()?.name||'';
   }
@@ -405,7 +426,34 @@ function groupVolumeByDate(rows){
 }
 
 function render(){
-  const c=active();if(!c)return;
+  const c=active();
+  fillClientSelects();refreshExercises();
+
+  if(!c){
+    document.body.classList.add('no-client');
+    document.getElementById('clientTitle').textContent='未登録';
+    document.getElementById('clientName').textContent='未登録';
+    document.getElementById('clientMeta').textContent='クライアントを登録してください';
+    document.getElementById('clientGoal').textContent='目標：未登録';
+    const ns=document.getElementById('noClientState');if(ns)ns.hidden=false;
+
+    document.getElementById('kpiGrid').innerHTML=[
+      ['最新体重','—'],['水分量','—'],['睡眠','—'],['推定1RM BEST','—'],['総ボリューム','—']
+    ].map(x=>`<article class="card kpi"><div class="label">${x[0]}</div><div class="value">${x[1]}</div><div class="change">クライアント未登録</div></article>`).join('');
+
+    document.getElementById('trainingTable').innerHTML='<tr><td colspan="7">クライアントを登録してください</td></tr>';
+    const bt=document.getElementById('bodyTable');if(bt)bt.innerHTML='<tr><td colspan="8">クライアントを登録してください</td></tr>';
+    const cl=document.getElementById('clientList');if(cl)cl.innerHTML='<div class="search-empty">まだクライアントが登録されていません</div>';
+    if(clientCountLabel)clientCountLabel.textContent='0名';
+    const report=document.getElementById('reportSummary');if(report)report.innerHTML='<div class="report-line"><span>状態</span><strong>未登録</strong></div>';
+    ['weightChart','waterChart','sleepChart','stepsChart','ormChart','volumeChart','exerciseWeightChart','exerciseOrmChart','exerciseVolumeChart'].forEach(id=>{
+      const s=document.getElementById(id);if(s){s.innerHTML='';emptyChart(s)}
+    });
+    return;
+  }
+
+  document.body.classList.remove('no-client');
+  const ns=document.getElementById('noClientState');if(ns)ns.hidden=true;
   fillClientSelects();refreshExercises();
 
   document.getElementById('clientTitle').textContent=c.name;
@@ -616,5 +664,29 @@ document.getElementById('signupBtn')?.addEventListener('click',async()=>{
 document.getElementById('accountBtn')?.addEventListener('click',()=>document.getElementById('accountDialog')?.showModal());
 document.getElementById('logoutBtn')?.addEventListener('click',async()=>{await sb?.auth.signOut();document.getElementById('accountDialog')?.close()});
 bootCloud();
+
+
+document.getElementById('migrateLocalBtn')?.addEventListener('click',async()=>{
+  if(!sb||!currentUser)return;
+  const legacyKeys=['ptAnalyticsV5','ptAnalyticsV4','ptAnalyticsV3','ptAnalyticsV2','ptAnalytics'];
+  let legacy=null;
+  for(const k of legacyKeys){
+    try{
+      const raw=localStorage.getItem(k);
+      if(!raw)continue;
+      const parsed=JSON.parse(raw);
+      if(Array.isArray(parsed.clients)&&parsed.clients.length){legacy=normalizeState(parsed);break}
+    }catch(e){}
+  }
+  if(!legacy||!legacy.clients.length){alert('この端末に移行できる旧データが見つかりませんでした。');return}
+  if(!confirm(`${legacy.clients.length}名の旧データを現在のクラウドアカウントへ移行しますか？`))return;
+  state=legacy;
+  ensureUuidState();
+  const raw=JSON.stringify(state);localStorage.setItem(KEY,raw);localStorage.setItem('ptAnalyticsV2',raw);
+  cloudReady=true;
+  await pushFullStateToCloud();
+  await fetchCloudState();
+  alert('クラウドへの移行が完了しました。');
+} );
 
 render();
