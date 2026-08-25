@@ -1,5 +1,6 @@
 
-const KEY='ptAnalyticsV2';
+const KEY='ptAnalyticsV5';
+const LEGACY_KEYS=['ptAnalyticsV4','ptAnalyticsV3','ptAnalyticsV2','ptAnalytics'];
 const defaultState={
   activeClientId:'c1',
   clients:[{id:'c1',name:'山田 太郎',age:28,sex:'男性',height:178,goal:'減量・筋力向上'}],
@@ -11,20 +12,54 @@ let state=load();
 let periodDays=30;
 
 function clone(x){return JSON.parse(JSON.stringify(x))}
-function load(){
-  try{
-    const x=JSON.parse(localStorage.getItem(KEY));
-    if(x && Array.isArray(x.clients)){
-      x.training=Array.isArray(x.training)?x.training:[];
-      x.body=Array.isArray(x.body)?x.body:[];
-      x.exercises=Array.isArray(x.exercises)&&x.exercises.length?x.exercises:clone(defaultState.exercises);
-      if(!x.activeClientId || !x.clients.some(c=>c.id===x.activeClientId)) x.activeClientId=x.clients[0]?.id||'';
-      return x;
+function normalizeState(x){
+  const base=clone(defaultState);
+  if(!x || typeof x!=='object') return base;
+  const clients=Array.isArray(x.clients)?x.clients.filter(Boolean):[];
+  const training=Array.isArray(x.training)?x.training:[];
+  const body=Array.isArray(x.body)?x.body:[];
+  const exercises=Array.isArray(x.exercises)&&x.exercises.length?x.exercises:clone(defaultState.exercises);
+
+  // Older versions may have records without clientId. Attach those to the first known client.
+  let fallbackClientId=x.activeClientId || clients[0]?.id || base.clients[0].id;
+  if(!clients.length){
+    // If old state only had profile-like fields, preserve what we can.
+    if(x.client && typeof x.client==='object'){
+      clients.push({
+        id:fallbackClientId,
+        name:x.client.name||'クライアント',
+        age:x.client.age||'',
+        sex:x.client.sex||'',
+        height:x.client.height||'',
+        goal:x.client.goal||''
+      });
+    }else{
+      clients.push(base.clients[0]);
+      fallbackClientId=base.clients[0].id;
     }
-  }catch(e){}
+  }
+  training.forEach(r=>{if(!r.clientId)r.clientId=fallbackClientId});
+  body.forEach(r=>{if(!r.clientId)r.clientId=fallbackClientId});
+
+  const activeClientId=clients.some(c=>c.id===x.activeClientId)?x.activeClientId:clients[0].id;
+  return {activeClientId,clients,training,body,exercises};
+}
+function load(){
+  // Prefer v5 data, otherwise migrate the newest legacy key that exists.
+  for(const key of [KEY,...LEGACY_KEYS]){
+    try{
+      const raw=localStorage.getItem(key);
+      if(!raw) continue;
+      const normalized=normalizeState(JSON.parse(raw));
+      if(key!==KEY){
+        localStorage.setItem(KEY,JSON.stringify(normalized));
+      }
+      return normalized;
+    }catch(e){}
+  }
   return clone(defaultState);
 }
-function save(){localStorage.setItem(KEY,JSON.stringify(state))}
+function save(){const raw=JSON.stringify(state);localStorage.setItem(KEY,raw);localStorage.setItem('ptAnalyticsV2',raw)}
 function active(){return state.clients.find(c=>c.id===state.activeClientId)||state.clients[0]}
 function today(){return new Date().toISOString().slice(0,10)}
 function n(v,d=1){const x=Number(v);return Number.isFinite(x)?x.toFixed(d):'—'}
@@ -80,6 +115,8 @@ const clientDialog=document.getElementById('clientDialog');
 const clientForm=document.getElementById('clientForm');
 const clientSelect=document.getElementById('clientSelect');
 const quickClientSelect=document.getElementById('quickClientSelect');
+const clientSearch=document.getElementById('clientSearch');
+const clientSearchResults=document.getElementById('clientSearchResults');
 
 document.getElementById('clientBtn').onclick=()=>{fillClientSelects();loadClientForm(active());clientDialog.showModal()};
 clientSelect.onchange=()=>{
@@ -109,7 +146,11 @@ function fillClientSelects(){
   const opts=state.clients.map(c=>`<option value="${c.id}">${esc(c.name)}</option>`).join('');
   clientSelect.innerHTML='<option value="">＋ 新規クライアント</option>'+opts;
   quickClientSelect.innerHTML=opts;
-  clientSelect.value=state.activeClientId;quickClientSelect.value=state.activeClientId;
+  clientSelect.value=state.activeClientId;
+  quickClientSelect.value=state.activeClientId;
+  if(document.activeElement!==clientSearch){
+    clientSearch.value=active()?.name||'';
+  }
 }
 function loadClientForm(c){
   if(!c)return;
@@ -147,6 +188,34 @@ function removeTraining(id){if(confirm('このトレーニング記録を削除�
 function removeBody(id){if(confirm('この身体・生活データを削除しますか？')){state.body=state.body.filter(x=>x.id!==id);save();render()}}
 window.removeTraining=removeTraining;window.removeBody=removeBody;
 
+
+function renderClientSearchResults(query){
+  const q=(query||'').trim().toLowerCase();
+  const matches=state.clients.filter(c=>{
+    if(!q)return true;
+    return [c.name,c.goal,c.sex,String(c.age||'')].some(v=>String(v||'').toLowerCase().includes(q));
+  }).slice(0,20);
+
+  clientSearchResults.innerHTML=matches.length
+    ? matches.map(c=>`<button type="button" class="search-result" data-client-id="${c.id}"><strong>${esc(c.name)}</strong><small>${esc(c.goal||'目標未設定')}</small></button>`).join('')
+    : '<div class="search-empty">該当するクライアントがいません</div>';
+
+  clientSearchResults.hidden=false;
+}
+clientSearch.addEventListener('focus',()=>renderClientSearchResults(clientSearch.value));
+clientSearch.addEventListener('input',()=>renderClientSearchResults(clientSearch.value));
+clientSearchResults.addEventListener('click',e=>{
+  const btn=e.target.closest('[data-client-id]');
+  if(!btn)return;
+  state.activeClientId=btn.dataset.clientId;
+  save();
+  clientSearchResults.hidden=true;
+  render();
+});
+document.addEventListener('click',e=>{
+  if(!e.target.closest('.client-search-wrap')) clientSearchResults.hidden=true;
+});
+
 // Backup
 const backupDialog=document.getElementById('backupDialog');
 document.getElementById('backupBtn').onclick=()=>backupDialog.showModal();
@@ -159,7 +228,7 @@ document.getElementById('importBackupInput').onchange=async e=>{
     const data=JSON.parse(await file.text());
     if(!Array.isArray(data.clients)||!Array.isArray(data.training)||!Array.isArray(data.body)) throw new Error();
     if(confirm('現在の端末データを、このバックアップ内容で置き換えますか？')){
-      state=data;state.exercises=state.exercises||clone(defaultState.exercises);save();backupDialog.close();render();
+      state=normalizeState(data);save();backupDialog.close();render();
     }
   }catch(err){alert('バックアップファイルを読み込めませんでした。')}
   e.target.value='';

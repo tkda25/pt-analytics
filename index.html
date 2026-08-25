@@ -22,16 +22,20 @@
 
     <main>
       <header class="topbar">
-        <div>
+        <div class="client-heading">
           <p class="eyebrow">クライアント詳細</p>
           <h1 id="clientTitle">山田 太郎</h1>
         </div>
         <div class="top-actions">
-      <select id="quickClientSelect" class="header-select" aria-label="クライアント切替"></select>
-      <button id="clientBtn" class="ghost-btn">クライアント管理</button>
-      <button id="backupBtn" class="ghost-btn">バックアップ</button>
-      <button id="resetBtn" class="ghost-btn danger-lite">初期化</button>
-    </div>
+          <div class="client-search-wrap">
+            <input id="clientSearch" class="client-search" type="search" placeholder="名前で検索" autocomplete="off" />
+            <select id="quickClientSelect" class="header-select" aria-label="クライアント切替"></select>
+            <div id="clientSearchResults" class="client-search-results" hidden></div>
+          </div>
+          <button id="clientBtn" class="ghost-btn">クライアント管理</button>
+          <button id="backupBtn" class="ghost-btn">バックアップ</button>
+          <button id="resetBtn" class="ghost-btn danger-lite">初期化</button>
+        </div>
       </header>
 
       <section class="profile-card card">
