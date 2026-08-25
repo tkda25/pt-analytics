@@ -117,6 +117,11 @@ const clientSelect=document.getElementById('clientSelect');
 const quickClientSelect=document.getElementById('quickClientSelect');
 const clientSearch=document.getElementById('clientSearch');
 const clientSearchResults=document.getElementById('clientSearchResults');
+const clientList=document.getElementById('clientList');
+const clientListSearch=document.getElementById('clientListSearch');
+const clientCountLabel=document.getElementById('clientCountLabel');
+const progressExerciseSelect=document.getElementById('progressExerciseSelect');
+
 
 document.getElementById('clientBtn').onclick=()=>{fillClientSelects();loadClientForm(active());clientDialog.showModal()};
 clientSelect.onchange=()=>{
@@ -173,6 +178,7 @@ document.getElementById('periodTabs').onclick=e=>{
   render();
 };
 exerciseFilter.onchange=render;
+progressExerciseSelect.onchange=render;
 
 function refreshExercises(){
   const sel=document.getElementById('exerciseSelect'),current=sel.value;
@@ -181,6 +187,13 @@ function refreshExercises(){
   const fcur=exerciseFilter.value;
   exerciseFilter.innerHTML='<option value="">全種目</option>'+state.exercises.map(x=>`<option>${esc(x)}</option>`).join('');
   exerciseFilter.value=fcur;
+  const pcur=progressExerciseSelect?.value;
+  const activeExercises=[...new Set(clientRows(state.training).map(x=>x.exercise))];
+  const source=activeExercises.length?activeExercises:state.exercises;
+  if(progressExerciseSelect){
+    progressExerciseSelect.innerHTML=source.map(x=>`<option>${esc(x)}</option>`).join('');
+    if(source.includes(pcur))progressExerciseSelect.value=pcur;
+  }
 }
 document.getElementById('addExerciseBtn').onclick=()=>{
   const input=document.getElementById('newExercise'),v=input.value.trim();
@@ -217,6 +230,23 @@ clientSearchResults.addEventListener('click',e=>{
 });
 document.addEventListener('click',e=>{
   if(!e.target.closest('.client-search-wrap')) clientSearchResults.hidden=true;
+});
+
+
+function renderClientList(){
+  const q=(clientListSearch?.value||'').trim().toLowerCase();
+  const rows=state.clients.filter(c=>!q||String(c.name||'').toLowerCase().includes(q));
+  if(clientCountLabel) clientCountLabel.textContent=`${state.clients.length}名`;
+  if(clientList) clientList.innerHTML=rows.length?rows.map(c=>`<button type="button" class="client-list-item ${c.id===state.activeClientId?'active':''}" data-client-card="${c.id}"><strong>${esc(c.name)}</strong><span>${esc(c.goal||'目標未設定')}</span><span>${c.age||'—'}歳 / ${esc(c.sex||'—')} / ${c.height||'—'}cm</span></button>`).join(''):'<div class="search-empty">該当するクライアントがいません</div>';
+}
+clientList?.addEventListener('click',e=>{
+  const btn=e.target.closest('[data-client-card]');if(!btn)return;
+  state.activeClientId=btn.dataset.clientCard;save();render();
+  document.getElementById('clientsSection')?.scrollIntoView({behavior:'smooth',block:'start'});
+});
+clientListSearch?.addEventListener('input',renderClientList);
+document.getElementById('addClientShortcut')?.addEventListener('click',()=>{
+  clientForm.reset();clientSelect.value='';clientDialog.showModal();setTimeout(()=>clientForm.elements.name.focus(),50);
 });
 
 // Backup
@@ -323,6 +353,21 @@ function render(){
   ];
   document.getElementById('reportSummary').innerHTML=report.map(([a,b])=>`<div class="report-line"><span>${a}</span><strong>${b}</strong></div>`).join('');
 
+
+  renderClientList();
+  const histName=document.getElementById('trainingHistoryClientName');if(histName)histName.textContent=c.name;
+  const progressExercise=progressExerciseSelect?.value || trAll[0]?.exercise || state.exercises[0];
+  if(progressExerciseSelect && progressExercise && !progressExerciseSelect.value)progressExerciseSelect.value=progressExercise;
+  const progressRows=trAll.filter(x=>x.exercise===progressExercise);
+  const bestWeight=progressRows.length?Math.max(...progressRows.map(x=>Number(x.weight)||0)):null;
+  const bestOrm=progressRows.length?Math.max(...progressRows.map(x=>e1rm(x.weight,x.reps,x.rpe))):null;
+  const latestWeight=progressRows.length?progressRows[progressRows.length-1].weight:null;
+  document.getElementById('progressBestWeight').textContent=bestWeight?`${n(bestWeight)} kg`:'—';
+  document.getElementById('progressBestOrm').textContent=bestOrm?`${n(bestOrm)} kg`:'—';
+  document.getElementById('progressLatestWeight').textContent=latestWeight?`${n(latestWeight)} kg`:'—';
+  document.getElementById('progressRecordCount').textContent=`${progressRows.length}件`;
+  drawLine('exerciseWeightChart',progressRows.map(x=>({date:x.date,value:x.weight})));
+  drawLine('exerciseOrmChart',progressRows.map(x=>({date:x.date,value:e1rm(x.weight,x.reps,x.rpe)})));
   drawLine('weightChart',bd.filter(x=>x.bodyWeight).map(x=>({date:x.date,value:x.bodyWeight})));
   drawLine('waterChart',bd.filter(x=>x.water).map(x=>({date:x.date,value:x.water})));
   drawLine('sleepChart',bd.filter(x=>x.sleep).map(x=>({date:x.date,value:x.sleep})));

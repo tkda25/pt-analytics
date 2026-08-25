@@ -50,6 +50,16 @@
         </div>
       </section>
 
+      <section class="card client-list-card" id="clientListPanel" data-section="clients">
+        <div class="card-head"><h3>クライアント一覧</h3><span id="clientCountLabel">0名</span></div>
+        <div class="client-list-toolbar">
+          <input id="clientListSearch" type="search" placeholder="クライアント名で絞り込み">
+          <button id="addClientShortcut" class="secondary-btn">＋ 新規クライアント</button>
+        </div>
+        <div id="clientList" class="client-list"></div>
+      </section>
+
+
       <section class="kpis" id="kpiGrid" data-section="dashboard"></section>
       <section class="comparison-strip card" id="comparisonStrip"></section>
 
@@ -85,9 +95,24 @@
         </article>
       </section>
 
+      
+      <section class="card exercise-progress-card" id="exerciseProgressSection" data-section="training">
+        <div class="card-head"><h3>種目別の成長</h3><select id="progressExerciseSelect" class="compact-select"></select></div>
+        <div class="exercise-progress-grid">
+          <div class="mini-stat"><span>最高重量</span><strong id="progressBestWeight">—</strong></div>
+          <div class="mini-stat"><span>推定1RM BEST</span><strong id="progressBestOrm">—</strong></div>
+          <div class="mini-stat"><span>直近重量</span><strong id="progressLatestWeight">—</strong></div>
+          <div class="mini-stat"><span>記録数</span><strong id="progressRecordCount">—</strong></div>
+        </div>
+        <div class="grid two progress-charts">
+          <article class="chart-card inner-card"><div class="card-head"><h3>重量の推移</h3><span>kg</span></div><svg id="exerciseWeightChart" viewBox="0 0 700 260" preserveAspectRatio="none"></svg></article>
+          <article class="chart-card inner-card"><div class="card-head"><h3>推定1RMの推移</h3><span>kg</span></div><svg id="exerciseOrmChart" viewBox="0 0 700 260" preserveAspectRatio="none"></svg></article>
+        </div>
+      </section>
+
       <section class="grid two" id="trainingSection" data-section="training">
         <article class="card">
-          <div class="card-head"><h3>トレーニング履歴</h3><select id="exerciseFilter" class="compact-select"><option value="">全種目</option></select></div>
+          <div class="card-head"><h3>トレーニング履歴</h3><span id="trainingHistoryClientName"></span><select id="exerciseFilter" class="compact-select"><option value="">全種目</option></select></div>
            <div class="period-tabs" id="periodTabs"><button data-days="7">1週間</button><button data-days="30" class="active">1ヶ月</button><button data-days="90">3ヶ月</button><button data-days="0">全期間</button></div>
           <div class="table-wrap"><table><thead><tr><th>日付</th><th>種目</th><th>重量</th><th>回数</th><th>RPE</th><th>推定1RM</th><th>操作</th></tr></thead><tbody id="trainingTable"></tbody></table></div>
         </article>
