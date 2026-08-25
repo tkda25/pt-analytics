@@ -20,3 +20,24 @@ button::first-letter,.nav-item::first-letter,h1::first-letter,h2::first-letter,h
 .inline-add{display:flex;gap:8px}.inline-add button{border:0;background:var(--sidebar);color:#fff;border-radius:9px;padding:0 14px}
 textarea{width:100%;border:1px solid var(--line);padding:10px;border-radius:9px;resize:vertical}
 .action-btn{border:1px solid var(--line);background:#fff;border-radius:7px;padding:5px 8px;font-size:11px}
+
+/* v4 */
+.header-select{width:auto;min-width:150px;max-width:230px;background:#fff}
+.danger-lite{color:#b33a3a}
+.comparison-strip{margin:-2px 0 16px;padding:14px 16px;display:flex;gap:18px;align-items:center;flex-wrap:wrap}
+.compare-item{display:flex;gap:8px;align-items:baseline}.compare-label{font-size:12px;color:var(--muted)}.compare-value{font-weight:800}.compare-up{color:var(--green)}.compare-down{color:#c94a4a}.compare-flat{color:var(--muted)}
+.report-card{padding:16px}.report-summary{display:grid;gap:10px}.report-line{display:flex;justify-content:space-between;gap:12px;border-bottom:1px solid var(--line);padding:9px 0}.report-line span:first-child{color:var(--muted)}.report-actions{display:flex;gap:8px;margin-top:14px;flex-wrap:wrap}
+.secondary-btn,.danger-btn,.file-label{border:1px solid var(--line);background:#fff;padding:9px 12px;border-radius:9px;cursor:pointer;font-weight:600}
+.danger-btn{color:#b33a3a;border-color:#efcaca}.split-actions{align-items:center}.split-actions span{flex:1}
+.backup-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px}.file-label{display:flex;justify-content:center;align-items:center;text-align:center}.file-label input{display:none}
+.note-cell{max-width:230px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+@media(max-width:680px){
+  .top-actions{width:100%;display:grid;grid-template-columns:1fr 1fr}.header-select{grid-column:1/-1;max-width:none;width:100%}
+  .comparison-strip{gap:10px}.compare-item{width:calc(50% - 6px)}
+  .backup-grid{grid-template-columns:1fr}
+  .report-actions>*{flex:1}
+}
+@media print{
+  .sidebar,.top-actions,.quick-actions,.period-tabs,.report-actions,.action-btn{display:none!important}
+  .app-shell{display:block}.card{box-shadow:none}.grid.two{grid-template-columns:1fr 1fr}main{padding:0;max-width:none}
+}

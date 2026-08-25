@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <title>PT Analytics MVP</title>
+  <title>PT Analytics v4</title>
   <link rel="stylesheet" href="style.css" />
 </head>
 <body>
@@ -26,7 +26,12 @@
           <p class="eyebrow">クライアント詳細</p>
           <h1 id="clientTitle">山田 太郎</h1>
         </div>
-        <div class="top-actions"><button id="clientBtn" class="ghost-btn">クライアント管理</button><button id="resetBtn" class="ghost-btn">データを初期化</button></div>
+        <div class="top-actions">
+      <select id="quickClientSelect" class="header-select" aria-label="クライアント切替"></select>
+      <button id="clientBtn" class="ghost-btn">クライアント管理</button>
+      <button id="backupBtn" class="ghost-btn">バックアップ</button>
+      <button id="resetBtn" class="ghost-btn danger-lite">初期化</button>
+    </div>
       </header>
 
       <section class="profile-card card">
@@ -42,6 +47,7 @@
       </section>
 
       <section class="kpis" id="kpiGrid"></section>
+      <section class="comparison-strip card" id="comparisonStrip"></section>
 
       <section class="grid two">
         <article class="card chart-card">
@@ -64,6 +70,16 @@
           <svg id="volumeChart" viewBox="0 0 700 260" preserveAspectRatio="none"></svg>
         </article>
       </section>
+      <section class="grid two">
+        <article class="card chart-card">
+          <div class="card-head"><h3>睡眠時間の推移</h3><span>h / 日</span></div>
+          <svg id="sleepChart" viewBox="0 0 700 260" preserveAspectRatio="none"></svg>
+        </article>
+        <article class="card chart-card">
+          <div class="card-head"><h3>歩数の推移</h3><span>steps / 日</span></div>
+          <svg id="stepsChart" viewBox="0 0 700 260" preserveAspectRatio="none"></svg>
+        </article>
+      </section>
 
       <section class="grid two">
         <article class="card">
@@ -76,6 +92,22 @@
           <div id="conditionSummary" class="condition-grid"></div>
         </article>
       </section>
+
+      <section class="grid two">
+        <article class="card">
+          <div class="card-head"><h3>身体・生活データ履歴</h3><span>最新20件</span></div>
+          <div class="table-wrap"><table><thead><tr><th>日付</th><th>体重</th><th>体脂肪</th><th>水分</th><th>睡眠</th><th>歩数</th><th>体調</th><th>操作</th></tr></thead><tbody id="bodyTable"></tbody></table></div>
+        </article>
+        <article class="card report-card" id="reportCard">
+          <div class="card-head"><h3>クライアントレポート</h3><span>現在の表示期間</span></div>
+          <div id="reportSummary" class="report-summary"></div>
+          <div class="report-actions">
+            <button id="exportCsvBtn" class="secondary-btn">CSVを書き出す</button>
+            <button id="printReportBtn" class="secondary-btn">印刷 / PDF</button>
+          </div>
+        </article>
+      </section>
+
     </main>
   </div>
 
@@ -97,7 +129,7 @@
       <label>日付<input name="date" type="date" required></label>
       <div class="form-grid"><label>体重(kg)<input name="bodyWeight" type="number" step="0.1" required></label><label>体脂肪率(%)<input name="bodyFat" type="number" step="0.1"></label></div>
       <div class="form-grid"><label>水分量(L)<input name="water" type="number" step="0.1"></label><label>睡眠(時間)<input name="sleep" type="number" step="0.1"></label></div>
-      <div class="form-grid"><label>歩数<input name="steps" type="number"></label><label>体調(10点)<input name="condition" type="number" min="1" max="10"></label></div>
+      <div class="form-grid"><label>歩数<input name="steps" type="number"></label><label>体調(10点)<input name="condition" type="number" min="1" max="10"></label></div><label>メモ<textarea name="note" rows="3" placeholder="食事・体調・指導メモなど"></textarea></label>
       <div class="dialog-actions"><button type="button" data-close>キャンセル</button><button class="primary" value="default">保存</button></div>
     </form>
   </dialog>
@@ -110,7 +142,20 @@
       <div class="form-grid"><label>名前<input name="name" required></label><label>年齢<input name="age" type="number" min="0"></label></div>
       <div class="form-grid"><label>性別<select name="sex"><option>男性</option><option>女性</option><option>その他</option></select></label><label>身長(cm)<input name="height" type="number" step="0.1"></label></div>
       <label>目標<input name="goal" placeholder="例：減量・筋力向上"></label>
-      <div class="dialog-actions"><button type="button" id="newClientBtn">新規入力</button><button type="button" data-close>キャンセル</button><button class="primary" value="default">保存</button></div>
+      <div class="dialog-actions split-actions"><button type="button" id="deleteClientBtn" class="danger-btn">クライアント削除</button><span></span><button type="button" id="newClientBtn">新規入力</button><button type="button" data-close>キャンセル</button><button class="primary" value="default">保存</button></div>
+    </form>
+  </dialog>
+
+
+  <dialog id="backupDialog">
+    <form method="dialog">
+      <h2>バックアップ</h2>
+      <p class="hint">この端末の全クライアント・トレーニング・身体データをJSONで保存できます。別端末で復元する場合もこのファイルを使います。</p>
+      <div class="backup-grid">
+        <button type="button" id="exportBackupBtn" class="primary">バックアップを書き出す</button>
+        <label class="file-label">バックアップを読み込む<input id="importBackupInput" type="file" accept=".json,application/json"></label>
+      </div>
+      <div class="dialog-actions"><button type="button" data-close>閉じる</button></div>
     </form>
   </dialog>
 
