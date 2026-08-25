@@ -121,6 +121,12 @@ const clientList=document.getElementById('clientList');
 const clientListSearch=document.getElementById('clientListSearch');
 const clientCountLabel=document.getElementById('clientCountLabel');
 const progressExerciseSelect=document.getElementById('progressExerciseSelect');
+const progressRangeSelect=document.getElementById('progressRangeSelect');
+const mobileMenuBtn=document.getElementById('mobileMenuBtn');
+const mobileMenuClose=document.getElementById('mobileMenuClose');
+const sidebar=document.getElementById('sidebar');
+const sidebarBackdrop=document.getElementById('sidebarBackdrop');
+
 
 
 document.getElementById('clientBtn').onclick=()=>{fillClientSelects();loadClientForm(active());clientDialog.showModal()};
@@ -179,6 +185,7 @@ document.getElementById('periodTabs').onclick=e=>{
 };
 exerciseFilter.onchange=render;
 progressExerciseSelect.onchange=render;
+progressRangeSelect.onchange=render;
 
 function refreshExercises(){
   const sel=document.getElementById('exerciseSelect'),current=sel.value;
@@ -249,6 +256,19 @@ document.getElementById('addClientShortcut')?.addEventListener('click',()=>{
   clientForm.reset();clientSelect.value='';clientDialog.showModal();setTimeout(()=>clientForm.elements.name.focus(),50);
 });
 
+
+function openMobileMenu(){
+  sidebar?.classList.add('open');
+  if(sidebarBackdrop) sidebarBackdrop.hidden=false;
+}
+function closeMobileMenu(){
+  sidebar?.classList.remove('open');
+  if(sidebarBackdrop) sidebarBackdrop.hidden=true;
+}
+mobileMenuBtn?.addEventListener('click',openMobileMenu);
+mobileMenuClose?.addEventListener('click',closeMobileMenu);
+sidebarBackdrop?.addEventListener('click',closeMobileMenu);
+
 // Backup
 const backupDialog=document.getElementById('backupDialog');
 document.getElementById('backupBtn').onclick=()=>backupDialog.showModal();
@@ -288,6 +308,31 @@ function compareValue(cur,prev,unit='',positiveIsGood=true){
   const diff=((cur-prev)/Math.abs(prev))*100;
   const cls=Math.abs(diff)<1?'compare-flat':((diff>0)===positiveIsGood?'compare-up':'compare-down');
   return [`${diff>=0?'+':''}${n(diff)}%`,cls];
+}
+
+
+function signed(v,d=1,unit=''){
+  if(v==null || !Number.isFinite(Number(v))) return '—';
+  const num=Number(v);
+  return `${num>0?'+':''}${num.toFixed(d)}${unit}`;
+}
+function filterByRange(rows,days){
+  if(!days)return rows;
+  const cutoff=new Date();cutoff.setHours(0,0,0,0);cutoff.setDate(cutoff.getDate()-days);
+  return rows.filter(x=>new Date(x.date+'T00:00:00')>=cutoff);
+}
+function latestTwo(rows){
+  const r=rows.slice().sort((a,b)=>a.date.localeCompare(b.date));
+  return r.length>=2?[r[r.length-1],r[r.length-2]]:[r[r.length-1]||null,null];
+}
+function percentChange(cur,prev){
+  if(cur==null||prev==null||Number(prev)===0)return null;
+  return ((Number(cur)-Number(prev))/Math.abs(Number(prev)))*100;
+}
+function groupVolumeByDate(rows){
+  const map={};
+  rows.forEach(x=>{map[x.date]=(map[x.date]||0)+(Number(x.weight)||0)*(Number(x.reps)||0)*(Number(x.sets)||0)});
+  return Object.entries(map).sort((a,b)=>a[0].localeCompare(b[0])).map(([date,value])=>({date,value}));
 }
 
 function render(){
@@ -356,18 +401,73 @@ function render(){
 
   renderClientList();
   const histName=document.getElementById('trainingHistoryClientName');if(histName)histName.textContent=c.name;
+
   const progressExercise=progressExerciseSelect?.value || trAll[0]?.exercise || state.exercises[0];
   if(progressExerciseSelect && progressExercise && !progressExerciseSelect.value)progressExerciseSelect.value=progressExercise;
-  const progressRows=trAll.filter(x=>x.exercise===progressExercise);
+
+  const rangeDays=Number(progressRangeSelect?.value||90);
+  const allExerciseRows=trAll.filter(x=>x.exercise===progressExercise);
+  const progressRows=filterByRange(allExerciseRows,rangeDays);
+  const [latestSet,prevSet]=latestTwo(allExerciseRows);
+
   const bestWeight=progressRows.length?Math.max(...progressRows.map(x=>Number(x.weight)||0)):null;
   const bestOrm=progressRows.length?Math.max(...progressRows.map(x=>e1rm(x.weight,x.reps,x.rpe))):null;
-  const latestWeight=progressRows.length?progressRows[progressRows.length-1].weight:null;
+  const latestWeight=latestSet?.weight??null;
+  const latestOrm=latestSet?e1rm(latestSet.weight,latestSet.reps,latestSet.rpe):null;
+  const prevOrm=prevSet?e1rm(prevSet.weight,prevSet.reps,prevSet.rpe):null;
+  const periodVolume=progressRows.reduce((s,x)=>s+(Number(x.weight)||0)*(Number(x.reps)||0)*(Number(x.sets)||0),0);
+
   document.getElementById('progressBestWeight').textContent=bestWeight?`${n(bestWeight)} kg`:'—';
   document.getElementById('progressBestOrm').textContent=bestOrm?`${n(bestOrm)} kg`:'—';
   document.getElementById('progressLatestWeight').textContent=latestWeight?`${n(latestWeight)} kg`:'—';
   document.getElementById('progressRecordCount').textContent=`${progressRows.length}件`;
+  document.getElementById('progressWeightChange').textContent=latestSet&&prevSet?signed(Number(latestSet.weight)-Number(prevSet.weight),1,' kg'):'—';
+  document.getElementById('progressRepsChange').textContent=latestSet&&prevSet?signed(Number(latestSet.reps)-Number(prevSet.reps),0,'回'):'—';
+  document.getElementById('progressOrmChange').textContent=latestSet&&prevSet?signed(latestOrm-prevOrm,1,' kg'):'—';
+  document.getElementById('progressPeriodVolume').textContent=periodVolume?`${Math.round(periodVolume).toLocaleString()} kg`:'—';
+
+  const previousBestOrm=allExerciseRows.length>1?Math.max(...allExerciseRows.slice(0,-1).map(x=>e1rm(x.weight,x.reps,x.rpe))):null;
+  const prBanner=document.getElementById('prBanner');
+  if(latestOrm && previousBestOrm && latestOrm>previousBestOrm){
+    prBanner.hidden=false;
+    prBanner.textContent=`🏆 自己ベスト更新：推定1RM ${n(latestOrm)} kg`;
+  }else if(prBanner){prBanner.hidden=true}
+
   drawLine('exerciseWeightChart',progressRows.map(x=>({date:x.date,value:x.weight})));
   drawLine('exerciseOrmChart',progressRows.map(x=>({date:x.date,value:e1rm(x.weight,x.reps,x.rpe)})));
+  drawBars('exerciseVolumeChart',groupVolumeByDate(progressRows));
+
+  // Client-level progress summary (last 90 days vs previous 90 days)
+  const cur90=filterByRange(trAll,90);
+  const body90=filterByRange(bdAll,90);
+  const now=new Date();now.setHours(0,0,0,0);
+  const start90=new Date(now);start90.setDate(start90.getDate()-90);
+  const start180=new Date(now);start180.setDate(start180.getDate()-180);
+  const prev90=trAll.filter(x=>{const d=new Date(x.date+'T00:00:00');return d>=start180&&d<start90});
+  const prevBody90=bdAll.filter(x=>{const d=new Date(x.date+'T00:00:00');return d>=start180&&d<start90});
+
+  const curBest=cur90.length?Math.max(...cur90.map(x=>e1rm(x.weight,x.reps,x.rpe))):null;
+  const prevBest=prev90.length?Math.max(...prev90.map(x=>e1rm(x.weight,x.reps,x.rpe))):null;
+  const curVol90=cur90.reduce((s,x)=>s+x.weight*x.reps*x.sets,0);
+  const prevVol90=prev90.reduce((s,x)=>s+x.weight*x.reps*x.sets,0);
+  const curWeight=latest(body90,'bodyWeight');
+  const prevWeight=latest(prevBody90,'bodyWeight');
+
+  const summaryItems=[
+    ['トレーニング件数',`${cur90.length}件`,percentChange(cur90.length,prev90.length)],
+    ['総ボリューム',curVol90?`${Math.round(curVol90).toLocaleString()} kg`:'—',percentChange(curVol90,prevVol90)],
+    ['推定1RM BEST',curBest?`${n(curBest)} kg`:'—',percentChange(curBest,prevBest)],
+    ['体重',curWeight?`${n(curWeight)} kg`:'—',curWeight!=null&&prevWeight!=null?Number(curWeight)-Number(prevWeight):null]
+  ];
+  const summaryGrid=document.getElementById('progressSummaryGrid');
+  summaryGrid.innerHTML=summaryItems.map(([label,value,delta],i)=>{
+    let deltaText='比較データなし',cls='summary-neutral';
+    if(delta!=null){
+      if(i===3){deltaText=`前期間比 ${signed(delta,1,' kg')}`;cls=delta<0?'summary-positive':delta>0?'summary-negative':'summary-neutral'}
+      else {deltaText=`前期間比 ${signed(delta,1,'%')}`;cls=delta>0?'summary-positive':delta<0?'summary-negative':'summary-neutral'}
+    }
+    return `<div class="summary-tile"><span>${label}</span><strong>${value}</strong><div class="${cls}" style="font-size:12px;margin-top:6px">${deltaText}</div></div>`;
+  }).join('');
   drawLine('weightChart',bd.filter(x=>x.bodyWeight).map(x=>({date:x.date,value:x.bodyWeight})));
   drawLine('waterChart',bd.filter(x=>x.water).map(x=>({date:x.date,value:x.water})));
   drawLine('sleepChart',bd.filter(x=>x.sleep).map(x=>({date:x.date,value:x.sleep})));
@@ -418,6 +518,7 @@ document.querySelectorAll('.nav-item[data-view]').forEach(btn=>{
   btn.addEventListener('click',()=>{
     const view=btn.dataset.view;
     setActiveNav(view);
+    closeMobileMenu();
     const id=navTargets[view];
     const target=document.getElementById(id);
     if(!target) return;

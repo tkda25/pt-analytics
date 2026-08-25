@@ -7,8 +7,10 @@
   <link rel="stylesheet" href="style.css" />
 </head>
 <body>
+  <button id="mobileMenuBtn" class="mobile-menu-btn" aria-label="メニューを開く">☰</button>
+  <div id="sidebarBackdrop" class="sidebar-backdrop" hidden></div>
   <div class="app-shell">
-    <aside class="sidebar">
+    <aside class="sidebar" id="sidebar"><button id="mobileMenuClose" class="mobile-menu-close" aria-label="メニューを閉じる">×</button>
       <div class="brand">🏋️ <span>PT Analytics</span></div>
       <nav>
         <button class="nav-item active" data-view="dashboard">ダッシュボード</button>
@@ -63,6 +65,12 @@
       <section class="kpis" id="kpiGrid" data-section="dashboard"></section>
       <section class="comparison-strip card" id="comparisonStrip"></section>
 
+      <section class="card progress-summary-card" id="progressSummary" data-section="dashboard">
+        <div class="card-head"><h3>進捗サマリー</h3><span id="progressPeriodLabel">直近3ヶ月</span></div>
+        <div class="progress-summary-grid" id="progressSummaryGrid"></div>
+      </section>
+
+
       <section class="grid two" id="bodySection" data-section="body">
         <article class="card chart-card">
           <div class="card-head"><h3>体重の推移</h3><span>kg</span></div>
@@ -97,16 +105,33 @@
 
       
       <section class="card exercise-progress-card" id="exerciseProgressSection" data-section="training">
-        <div class="card-head"><h3>種目別の成長</h3><select id="progressExerciseSelect" class="compact-select"></select></div>
+        <div class="card-head exercise-progress-head">
+      <h3>種目別の成長</h3>
+      <div class="progress-controls">
+        <select id="progressExerciseSelect" class="compact-select"></select>
+        <select id="progressRangeSelect" class="compact-select">
+          <option value="30">1ヶ月</option>
+          <option value="90" selected>3ヶ月</option>
+          <option value="180">6ヶ月</option>
+          <option value="0">全期間</option>
+        </select>
+      </div>
+    </div>
+        <div id="prBanner" class="pr-banner" hidden>🏆 自己ベスト更新</div>
         <div class="exercise-progress-grid">
           <div class="mini-stat"><span>最高重量</span><strong id="progressBestWeight">—</strong></div>
           <div class="mini-stat"><span>推定1RM BEST</span><strong id="progressBestOrm">—</strong></div>
           <div class="mini-stat"><span>直近重量</span><strong id="progressLatestWeight">—</strong></div>
           <div class="mini-stat"><span>記録数</span><strong id="progressRecordCount">—</strong></div>
+          <div class="mini-stat"><span>前回比 重量</span><strong id="progressWeightChange">—</strong></div>
+          <div class="mini-stat"><span>前回比 回数</span><strong id="progressRepsChange">—</strong></div>
+          <div class="mini-stat"><span>前回比 推定1RM</span><strong id="progressOrmChange">—</strong></div>
+          <div class="mini-stat"><span>期間ボリューム</span><strong id="progressPeriodVolume">—</strong></div>
         </div>
         <div class="grid two progress-charts">
           <article class="chart-card inner-card"><div class="card-head"><h3>重量の推移</h3><span>kg</span></div><svg id="exerciseWeightChart" viewBox="0 0 700 260" preserveAspectRatio="none"></svg></article>
           <article class="chart-card inner-card"><div class="card-head"><h3>推定1RMの推移</h3><span>kg</span></div><svg id="exerciseOrmChart" viewBox="0 0 700 260" preserveAspectRatio="none"></svg></article>
+          <article class="chart-card inner-card"><div class="card-head"><h3>総ボリュームの推移</h3><span>kg</span></div><svg id="exerciseVolumeChart" viewBox="0 0 700 260" preserveAspectRatio="none"></svg></article>
         </div>
       </section>
 
