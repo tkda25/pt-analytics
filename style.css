@@ -495,7 +495,7 @@ body:not(.clients-view) #clientListPanel{display:none!important}
 .report-bodypart-list{display:grid;gap:7px}
 .report-bodypart-row{display:flex;justify-content:space-between;gap:12px;font-size:13px;border-bottom:1px solid var(--line);padding:7px 0}
 
-/* v28: per-set estimated 1RM */
+/* v29.2 - per-set 1RM */
 .set-entry-head,
 .training-set-row{
   grid-template-columns:46px minmax(0,1fr) minmax(0,1fr) 82px 44px!important;
@@ -527,8 +527,4 @@ body:not(.clients-view) #clientListPanel{display:none!important}
     font-size:12px;
     padding:0 4px;
   }
-}
-.card:has(#ormChart),
-#ormChart{
-  display:none!important;
 }

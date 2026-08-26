@@ -161,8 +161,6 @@ function e1rm(w,reps){
   const weight=Number(w), r=Math.round(Number(reps));
   if(!Number.isFinite(weight)||weight<=0||!Number.isFinite(r)||r<=0)return 0;
 
-  // RM換算表方式（現場で使われる一般的な目安）
-  // 例: 8回 = 約83% → 115kg ÷ 0.83 ≒ 138.6kg
   const rmPercent={
     1:1.00,
     2:0.95,
@@ -988,7 +986,6 @@ function render(){
   }else if(prBanner){prBanner.hidden=true}
 
   drawLine('exerciseWeightChart',progressRows.map(x=>({date:x.date,value:x.weight})));
-  drawLine('exerciseOrmChart',progressRows.map(x=>({date:x.date,value:recordBest1RM(x)})));
   drawBars('exerciseVolumeChart',groupVolumeByDate(progressRows));
 
   // Client-level progress summary (last 90 days vs previous 90 days)
@@ -1024,6 +1021,7 @@ function render(){
   drawLine('waterChart',bd.filter(x=>x.water).map(x=>({date:x.date,value:x.water})));
   drawLine('sleepChart',bd.filter(x=>x.sleep).map(x=>({date:x.date,value:x.sleep})));
   drawLine('stepsChart',bd.filter(x=>x.steps).map(x=>({date:x.date,value:x.steps})));
+  drawLine('ormChart',tr.map(x=>({date:x.date,value:recordBest1RM(x)})));
   drawBars('volumeChart',groupVolumeByDate(tr));
   cleanDashboardVolumeUI();
     removeEstimated1RmBestUi();
