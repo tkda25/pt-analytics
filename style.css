@@ -291,3 +291,16 @@ body.clients-view .search-empty{
     width:100%;
   }
 }
+
+/* v16 */
+.search-result{position:relative;padding-right:46px!important}
+.search-result-arrow{
+  position:absolute;
+  right:16px;
+  top:50%;
+  transform:translateY(-50%);
+  font-size:28px;
+  line-height:1;
+  color:var(--muted);
+}
+.search-result:active{transform:scale(.995)}

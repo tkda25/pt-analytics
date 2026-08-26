@@ -382,6 +382,7 @@ function renderClientSearchResults(query){
     ? matches.map(c=>`<button type="button" class="search-result ${c.id===state.activeClientId?'active':''}" data-client-id="${c.id}">
         <strong>${esc(c.name)}</strong>
         <small>${esc(c.goal||'目標未設定')} / ${c.age||'—'}歳 / ${esc(c.sex||'—')} / ${c.height||'—'}cm</small>
+        <span class="search-result-arrow" aria-hidden="true">›</span>
       </button>`).join('')
     : '<div class="search-empty">該当するクライアントがいません</div>';
   clientSearchResults.hidden=false;
@@ -400,15 +401,14 @@ clientSearchResults.addEventListener('click',e=>{
 
   state.activeClientId=btn.dataset.clientId;
   save();
-  render();
 
-  if(currentView==='clients'){
-    // Stay on the Client List page and keep the search results visible.
-    renderClientSearchResults(clientSearch.value);
-  }else{
-    clientSearch.value='';
-    clientSearchResults.hidden=true;
-  }
+  clientSearch.value='';
+  clientSearchResults.hidden=true;
+
+  // Client List -> search -> tap = open that client's dashboard.
+  currentView='dashboard';
+  render();
+  applyView('dashboard');
 });
 
 document.addEventListener('click',e=>{
