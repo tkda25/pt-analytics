@@ -3,11 +3,18 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <title>PT Analytics v23</title>
-  <link rel="stylesheet" href="style.css?v=23" />
+  <title>PT Analytics v24</title>
+  <link rel="stylesheet" href="style.css?v=24-0826a" />
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-  <script src="config.js?v=23"></script>
-</head>
+  <script src="config.js?v=24-0826a"></script>
+<style id="v24-critical">
+.compat-hidden{display:none!important}
+.view-title-row{display:flex;align-items:baseline;gap:12px;flex-wrap:wrap}
+.view-client-name{font-size:18px;font-weight:800;color:#71839d}
+.build-marker{font-size:10px;font-weight:700;color:#9aa8ba;margin-left:4px}
+.legacy-client-profile{display:none!important}
+#trainingChartsSection,.card:has(#ormChart),.card:has(#volumeChart){display:none!important}
+</style></head>
 <body>
     <section id="authGate" class="auth-gate">
     <div class="auth-card">
@@ -49,27 +56,20 @@
 
     <main>
       <div class="view-heading">
-        <p class="eyebrow">MENU</p>
+        <p class="eyebrow">MENU <small class="build-marker">v24</small></p>
         <div class="view-title-row">
           <h2 id="viewTitle">ダッシュボード</h2>
           <span id="viewClientName" class="view-client-name">未登録</span>
         </div>
       </div>
-      <header class="topbar">
-        <div class="client-heading">
-          <p class="eyebrow">クライアント詳細</p>
-          <h1 id="clientTitle">未登録</h1>
-        </div>
-        <div class="top-actions">
-          <div class="client-search-wrap">
-            <input id="clientSearch" class="client-search" type="search" placeholder="名前で検索" autocomplete="off" inputmode="search" />
-            <div id="clientSearchResults" class="client-search-results" hidden></div>
-          </div>
-          <button id="clientBtn" class="ghost-btn">クライアント管理</button>
-          
-          
-        </div>
-      </header>
+
+      <!-- 互換用。画面には出しません -->
+      <div class="compat-hidden" aria-hidden="true">
+        <h1 id="clientTitle">未登録</h1>
+        <input id="clientSearch" type="search">
+        <div id="clientSearchResults" hidden></div>
+        <button id="clientBtn" type="button"></button>
+      </div>
 
       <section class="training-calendar-section" id="trainingCalendarSection" data-section="training">
         <article class="card">
@@ -102,7 +102,7 @@
         </article>
       </section>
 
-      <section class="profile-card card legacy-client-profile" id="clientsSection" data-section="clients">
+      <section class="profile-card card legacy-client-profile" id="clientsSection">
         <div>
           <h2><span id="clientName">未登録</span> <span class="badge">アクティブ</span></h2>
           <p id="clientMeta">クライアントを登録してください</p>
@@ -118,7 +118,7 @@
         </div>
       </section>
 
-      <section class="card client-list-card legacy-client-list" id="clientListPanel" data-section="clients">
+      <section class="card client-list-card" id="clientListPanel">
         <div class="card-head"><h3>クライアント一覧</h3><span id="clientCountLabel">0名</span></div>
         <div class="client-list-toolbar">
           <input id="clientListSearch" type="search" placeholder="名前で検索">
@@ -150,11 +150,6 @@
           <div class="card-head"><h3>水分摂取量の推移</h3><span>L / 日</span></div>
           <svg id="waterChart" viewBox="0 0 700 260" preserveAspectRatio="none"></svg>
         </article>
-      </section>
-
-      <section class="view-actionbar" data-section="training">
-        <div><strong>トレーニング</strong><span>種目ごとの成長と履歴を管理</span></div>
-        <button class="primary" data-open="training">＋ トレーニング記録</button>
       </section>
       <section class="grid two" id="conditionSection" data-section="condition">
         <article class="card chart-card">
@@ -262,7 +257,7 @@
   <dialog id="bodyDialog">
     <form id="bodyForm" method="dialog">
       <h2 id="bodyDialogTitle">身体・生活データを記録</h2>
-      <input name="date" type="hidden" required>
+      <label>日付<input name="date" type="date" required></label>
       <div class="form-grid"><label>体重(kg)<input name="bodyWeight" type="number" step="0.1" required></label><label>体脂肪率(%)<input name="bodyFat" type="number" step="0.1"></label></div>
       <div class="form-grid"><label>水分量(L)<input name="water" type="number" step="0.1"></label><label>睡眠(時間)<input name="sleep" type="number" step="0.1"></label></div>
       <div class="form-grid"><label>歩数<input name="steps" type="number"></label><label>体調(10点)<input name="condition" type="number" min="1" max="10"></label></div><label>メモ<textarea name="note" rows="3" placeholder="食事・体調・指導メモなど"></textarea></label>
@@ -306,6 +301,6 @@
     </form>
   </dialog>
 
-  <script src="app.js?v=23"></script>
+  <script src="app.js?v=24-0826a"></script>
 </body>
 </html>

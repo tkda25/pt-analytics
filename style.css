@@ -446,25 +446,10 @@ body:not(.clients-view) #clientBtn{display:none!important}
 
 button[data-open="training"]{display:none!important}
 
-/* v22 */
+/* v24 */
+.compat-hidden{display:none!important}
 .view-title-row{display:flex;align-items:baseline;gap:12px;flex-wrap:wrap}
-.view-client-name{font-size:16px;font-weight:700;color:#71839d}
-body:not(.clients-view) .client-search-wrap{display:none!important}
-#trainingChartsSection{display:none!important}
-
-.view-actionbar[data-section="training"]{display:none!important}
-
-/* v23 - actual UI cleanup */
-.topbar{display:none!important}
-.view-title-row{display:flex!important;align-items:center!important;gap:12px!important;flex-wrap:wrap}
-.view-client-name{
-  display:inline-block!important;
-  font-size:20px!important;
-  font-weight:800!important;
-  color:#71839d!important;
-}
-#trainingChartsSection,
-.card:has(#ormChart),
-.card:has(#volumeChart){display:none!important}
-
-.clients-view #clientsSection{display:none!important}
+.view-client-name{font-size:18px;font-weight:800;color:#71839d}
+.legacy-client-profile{display:none!important}
+#clientListPanel{display:block}
+#trainingChartsSection,.card:has(#ormChart),.card:has(#volumeChart){display:none!important}

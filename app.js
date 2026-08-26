@@ -722,16 +722,10 @@ function openTrainingForDate(dateStr){
 }
 
 
-function removeVolumeDashboardArtifacts(){
+function cleanDashboardVolumeUI(){
   document.querySelectorAll('#kpiGrid > *, #progressSummaryGrid > *').forEach(el=>{
-    if(/総ボリューム|期間ボリューム/.test(el.textContent||''))el.remove();
+    if(/総ボリューム/.test(el.textContent||'')) el.remove();
   });
-  const strip=document.getElementById('comparisonStrip');
-  if(strip){
-    strip.querySelectorAll('*').forEach(el=>{
-      if(/期間ボリューム|総ボリューム/.test(el.textContent||''))el.remove();
-    });
-  }
 }
 
 function render(){
@@ -741,9 +735,8 @@ function render(){
   if(!c){
     document.body.classList.add('no-client');
     document.getElementById('clientTitle').textContent='未登録';
+    const vcn=document.getElementById('viewClientName');if(vcn)vcn.textContent='未登録';
     document.getElementById('clientName').textContent='未登録';
-    const viewClientName=document.getElementById('viewClientName');
-    if(viewClientName)viewClientName.textContent='未登録';
     document.getElementById('clientMeta').textContent='クライアントを登録してください';
     document.getElementById('clientGoal').textContent='目標：未登録';
     const ns=document.getElementById('noClientState');if(ns)ns.hidden=false;
@@ -760,6 +753,7 @@ function render(){
     ['weightChart','waterChart','sleepChart','stepsChart','ormChart','volumeChart','exerciseWeightChart','exerciseOrmChart','exerciseVolumeChart'].forEach(id=>{
       const s=document.getElementById(id);if(s){s.innerHTML='';emptyChart(s)}
     });
+    cleanDashboardVolumeUI();
     applyView(currentView);
     return;
   }
@@ -769,9 +763,8 @@ function render(){
   fillClientSelects();refreshExercises();
 
   document.getElementById('clientTitle').textContent=c.name;
+  const vcn=document.getElementById('viewClientName');if(vcn)vcn.textContent=c.name;
   document.getElementById('clientName').textContent=c.name;
-  const viewClientName=document.getElementById('viewClientName');
-  if(viewClientName)viewClientName.textContent=c.name;
   document.getElementById('clientMeta').textContent=`${c.age||'—'}歳 / ${c.sex||'—'} / ${c.height||'—'}cm`;
   document.getElementById('clientGoal').textContent='目標：'+(c.goal||'未設定');
 
@@ -784,6 +777,8 @@ function render(){
 
   const lastW=latest(bdAll,'bodyWeight'),lastWater=latest(bdAll,'water'),lastSleep=latest(bdAll,'sleep');
   const best=trAll.length?Math.max(...trAll.map(x=>recordBest1RM(x))):null;
+  const latestTrainingDate=trAll.length?[...trAll].sort((a,b)=>a.date.localeCompare(b.date)).at(-1).date:'';
+  const dailyVol=latestTrainingDate?trAll.filter(x=>x.date===latestTrainingDate).reduce((s,x)=>s+trainingVolume(x),0):0;
   const kpis=[
     ['最新体重',lastW==null?'—':n(lastW)+' kg'],
     ['水分量',lastWater==null?'—':n(lastWater)+' L'],
@@ -886,15 +881,14 @@ function render(){
   const prevWeight=latest(prevBody90,'bodyWeight');
 
   const summaryItems=[
-    ['トレーニング件数',`${cur90.length}件`,percentChange(cur90.length,prev90.length)],
-    ['推定1RM BEST',curBest?`${n(curBest)} kg`:'—',percentChange(curBest,prevBest)],
+    ['トレーニング件数',`${cur90.length}件`,percentChange(cur90.length,prev90.length)],    ['推定1RM BEST',curBest?`${n(curBest)} kg`:'—',percentChange(curBest,prevBest)],
     ['体重',curWeight?`${n(curWeight)} kg`:'—',curWeight!=null&&prevWeight!=null?Number(curWeight)-Number(prevWeight):null]
   ];
   const summaryGrid=document.getElementById('progressSummaryGrid');
   summaryGrid.innerHTML=summaryItems.map(([label,value,delta],i)=>{
     let deltaText='比較データなし',cls='summary-neutral';
     if(delta!=null){
-      if(i===2){deltaText=`前期間比 ${signed(delta,1,' kg')}`;cls=delta<0?'summary-positive':delta>0?'summary-negative':'summary-neutral'}
+      if(i===3){deltaText=`前期間比 ${signed(delta,1,' kg')}`;cls=delta<0?'summary-positive':delta>0?'summary-negative':'summary-neutral'}
       else {deltaText=`前期間比 ${signed(delta,1,'%')}`;cls=delta>0?'summary-positive':delta<0?'summary-negative':'summary-neutral'}
     }
     return `<div class="summary-tile"><span>${label}</span><strong>${value}</strong><div class="${cls}" style="font-size:12px;margin-top:6px">${deltaText}</div></div>`;
@@ -903,7 +897,10 @@ function render(){
   drawLine('waterChart',bd.filter(x=>x.water).map(x=>({date:x.date,value:x.water})));
   drawLine('sleepChart',bd.filter(x=>x.sleep).map(x=>({date:x.date,value:x.sleep})));
   drawLine('stepsChart',bd.filter(x=>x.steps).map(x=>({date:x.date,value:x.steps})));
-  applyView(currentView);
+  drawLine('ormChart',tr.map(x=>({date:x.date,value:recordBest1RM(x)})));
+  drawBars('volumeChart',groupVolumeByDate(tr));
+  cleanDashboardVolumeUI();
+    applyView(currentView);
 }
 
 function svgEl(name,attrs={}){const e=document.createElementNS('http://www.w3.org/2000/svg',name);for(const[k,v]of Object.entries(attrs))e.setAttribute(k,v);return e}
@@ -1037,6 +1034,12 @@ document.getElementById('trainingCalendar')?.addEventListener('click',e=>{
 
 document.getElementById('calendarAddTrainingBtn')?.addEventListener('click',()=>{
   if(selectedTrainingDate)openTrainingForDate(selectedTrainingDate);
+});
+
+document.getElementById('clientList')?.addEventListener('click',e=>{
+  const btn=e.target.closest('[data-client-card]'); if(!btn)return;
+  state.activeClientId=btn.dataset.clientCard;
+  save(); currentView='dashboard'; render(); applyView('dashboard');
 });
 
 render();
