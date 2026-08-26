@@ -31,22 +31,17 @@ function ensureUuidState(){
   if(!state.clients.some(c=>c.id===state.activeClientId))state.activeClientId=state.clients[0]?.id||'';
 }
 function cloudClientRow(c){return{id:c.id,name:c.name,age:c.age||null,sex:c.sex||null,height:c.height||null,goal:c.goal||null}}
-function cloudTrainingRow(r){const orm=e1rm(r.weight,r.reps);return{id:r.id,client_id:r.clientId,training_date:r.date,exercise:r.exercise,weight:r.weight,reps:r.reps,sets:r.sets,rpe:null,estimated_1rm:Number.isFinite(orm)?Math.round(orm*10)/10:null,volume:(+r.weight||0)*(+r.reps||0)*(+r.sets||0),note:r.note||null}}
-function cloudBodyRow(r){return{id:r.id,client_id:r.clientId,record_date:r.date,body_weight:r.bodyWeight||null,body_fat:r.bodyFat||null,water:r.water||null,sleep:r.sleep||null,steps:r.steps||null,condition:r.condition||null,note:r.note||null}}
-function localFromCloud(c,t,b){return{activeClientId:c[0]?.id||'',clients:c.map(x=>({id:x.id,name:x.name,age:x.age||'',sex:x.sex||'',height:x.height||'',goal:x.goal||''})),training:t.map(x=>({id:x.id,clientId:x.client_id,date:x.training_date,exercise:x.exercise,weight:+x.weight,reps:x.reps,sets:x.sets,rpe:null,note:x.note||''})),body:b.map(x=>({id:x.id,clientId:x.client_id,date:x.record_date,bodyWeight:x.body_weight==null?null:+x.body_weight,bodyFat:x.body_fat==null?null:+x.body_fat,water:x.water==null?null:+x.water,sleep:x.sleep==null?null:+x.sleep,steps:x.steps,condition:x.condition,note:x.note||''})),exercises:state.exercises||clone(defaultState.exercises)}}
-async function fetchCloudState(){
-  if(!sb||!currentUser)return false;
-  setSyncStatus('読み込み中');
-  const [c,t,b]=await Promise.all([
-    sb.from('clients').select('*').order('created_at'),
-    sb.from('training_records').select('*').order('training_date'),
-    sb.from('body_records').select('*').order('record_date')
-  ]);
-  if(c.error||t.error||b.error){console.error(c.error||t.error||b.error);setSyncStatus('読み込みエラー');return false}
-  if(c.data.length===0){suppressCloudSave=true;state={activeClientId:'',clients:[],training:[],body:[],exercises:state.exercises||clone(defaultState.exercises)};const raw=JSON.stringify(state);localStorage.setItem(KEY,raw);localStorage.setItem('ptAnalyticsV2',raw);suppressCloudSave=false;setSyncStatus('同期済み');render();return 'empty';}
-  suppressCloudSave=true;state=localFromCloud(c.data,t.data,b.data);
-  const raw=JSON.stringify(state);localStorage.setItem(KEY,raw);localStorage.setItem('ptAnalyticsV2',raw);
-  suppressCloudSave=false;setSyncStatus('同期済み');render();return true;
+function cloudTrainingRow(r){
+  const sets=parseTrainingSets(r);
+  const top=sets.length?sets.slice().sort((a,b)=>e1rm(b.weight,b.reps)-e1rm(a.weight,a.reps))[0]:{weight:Number(r.weight)||0,reps:Number(r.reps)||0};
+  const orm=sets.length?Math.max(...sets.map(s=>e1rm(s.weight,s.reps))):e1rm(top.weight,top.reps);
+  return{
+    id:r.id,client_id:r.clientId,training_date:r.date,exercise:r.exercise,
+    weight:top.weight,reps:top.reps,sets:Math.max(1,sets.length),rpe:null,
+    estimated_1rm:Number.isFinite(orm)?Math.round(orm*10)/10:null,
+    volume:sets.reduce((sum,s)=>sum+s.weight*s.reps,0),
+    note:r.note||null
+  };
 }
 async function pushFullStateToCloud(){
   if(!sb||!currentUser||cloudBusy)return;
@@ -165,6 +160,55 @@ function e1rm(w,reps){
   const repsUsed=Math.min(r,10);
   return weight*36/(37-repsUsed);
 }
+
+const SETS_NOTE_PREFIX='__PTSETS__:';
+
+function parseTrainingSets(record){
+  const raw=String(record?.note||'');
+  if(raw.startsWith(SETS_NOTE_PREFIX)){
+    const nl=raw.indexOf('\n');
+    const payload=nl>=0?raw.slice(SETS_NOTE_PREFIX.length,nl):raw.slice(SETS_NOTE_PREFIX.length);
+    try{
+      const parsed=JSON.parse(payload);
+      if(Array.isArray(parsed)&&parsed.length){
+        return parsed
+          .map(s=>({weight:Number(s.weight),reps:Number(s.reps)}))
+          .filter(s=>Number.isFinite(s.weight)&&s.weight>0&&Number.isFinite(s.reps)&&s.reps>0);
+      }
+    }catch(e){}
+  }
+  const count=Math.max(1,Number(record?.sets)||1);
+  return Array.from({length:count},()=>({weight:Number(record?.weight)||0,reps:Number(record?.reps)||0}))
+    .filter(s=>s.weight>0&&s.reps>0);
+}
+
+function visibleTrainingNote(record){
+  const raw=String(record?.note||'');
+  if(!raw.startsWith(SETS_NOTE_PREFIX))return raw;
+  const nl=raw.indexOf('\n');
+  return nl>=0?raw.slice(nl+1):'';
+}
+
+function encodeTrainingNote(sets,note){
+  return SETS_NOTE_PREFIX+JSON.stringify(sets.map(s=>({weight:Number(s.weight),reps:Number(s.reps)})))+'\n'+String(note||'');
+}
+
+function trainingVolume(record){
+  return parseTrainingSets(record).reduce((sum,s)=>sum+s.weight*s.reps,0);
+}
+
+function recordBest1RM(record){
+  const sets=parseTrainingSets(record);
+  if(!sets.length)return 0;
+  return Math.max(...sets.map(s=>e1rm(s.weight,s.reps)));
+}
+
+function recordTopSet(record){
+  const sets=parseTrainingSets(record);
+  if(!sets.length)return {weight:Number(record?.weight)||0,reps:Number(record?.reps)||0};
+  return sets.slice().sort((a,b)=>recordBest1RM({weight:b.weight,reps:b.reps,sets:1,note:''})-recordBest1RM({weight:a.weight,reps:a.reps,sets:1,note:''}))[0];
+}
+
 function latest(a,k){const x=a.filter(v=>v[k]!=null&&v[k]!==0);return x.length?x[x.length-1][k]:null}
 function avg(arr,k){const a=arr.map(x=>Number(x[k])).filter(v=>Number.isFinite(v)&&v!==0);return a.length?a.reduce((s,v)=>s+v,0)/a.length:null}
 function withinDays(x,days=periodDays){
@@ -184,6 +228,58 @@ function download(name,text,type='text/plain'){
   a.href=url;a.download=name;document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(url),500);
 }
 
+
+const trainingSetRows=document.getElementById('trainingSetRows');
+
+function addTrainingSetRow(values={},completed=false){
+  const index=trainingSetRows.children.length+1;
+  const row=document.createElement('div');
+  row.className='training-set-row'+(completed?' completed':'');
+  row.innerHTML=`
+    <span class="training-set-number">${index}</span>
+    <input class="set-weight" type="number" inputmode="decimal" step="0.5" min="0" placeholder="??" value="${values.weight??''}" aria-label="${index}セット目の重量">
+    <input class="set-reps" type="number" inputmode="numeric" min="1" placeholder="??" value="${values.reps??''}" aria-label="${index}セット目の回数">
+    <button type="button" class="training-set-check" aria-label="${index}セット目を完了">✓</button>`;
+  trainingSetRows.appendChild(row);
+  return row;
+}
+
+function resetTrainingSetRows(sets=[]){
+  trainingSetRows.innerHTML='';
+  if(sets.length){
+    sets.forEach((s,i)=>addTrainingSetRow(s,i<sets.length-1));
+  }else{
+    addTrainingSetRow();
+  }
+}
+
+function collectTrainingSets(){
+  return [...trainingSetRows.querySelectorAll('.training-set-row')]
+    .map(row=>({
+      weight:Number(row.querySelector('.set-weight').value),
+      reps:Number(row.querySelector('.set-reps').value)
+    }))
+    .filter(s=>Number.isFinite(s.weight)&&s.weight>0&&Number.isFinite(s.reps)&&s.reps>0);
+}
+
+trainingSetRows.addEventListener('click',e=>{
+  const check=e.target.closest('.training-set-check');
+  if(!check)return;
+  const row=check.closest('.training-set-row');
+  const weight=Number(row.querySelector('.set-weight').value);
+  const reps=Number(row.querySelector('.set-reps').value);
+  if(!Number.isFinite(weight)||weight<=0||!Number.isFinite(reps)||reps<=0){
+    alert('kgと回数を入力してください。');
+    return;
+  }
+  row.classList.add('completed');
+  const all=[...trainingSetRows.querySelectorAll('.training-set-row')];
+  if(row===all[all.length-1]){
+    const next=addTrainingSetRow();
+    setTimeout(()=>next.querySelector('.set-weight').focus(),0);
+  }
+});
+
 document.querySelectorAll('[data-open]').forEach(b=>b.onclick=()=>{
   const type=b.dataset.open;
   const d=document.getElementById(type+'Dialog');
@@ -191,7 +287,7 @@ document.querySelectorAll('[data-open]').forEach(b=>b.onclick=()=>{
     editingTrainingId=null;
     document.getElementById('trainingDialogTitle').textContent='トレーニングを記録';
     document.getElementById('trainingForm').reset();
-    document.getElementById('trainingForm').elements.sets.value=3;
+    resetTrainingSetRows();
   }
   if(type==='body'){
     editingBodyId=null;
@@ -205,10 +301,24 @@ document.querySelectorAll('[data-close]').forEach(b=>b.onclick=()=>b.closest('di
 
 document.getElementById('trainingForm').addEventListener('submit',e=>{
   const f=new FormData(e.currentTarget);
+  const sets=collectTrainingSets();
+  if(!sets.length){
+    e.preventDefault();
+    alert('最低1セット、kgと回数を入力してください。');
+    return;
+  }
+
+  const top=sets.slice().sort((a,b)=>e1rm(b.weight,b.reps)-e1rm(a.weight,a.reps))[0];
   const payload={
-    clientId:state.activeClientId,date:f.get('date'),exercise:f.get('exercise'),
-    weight:+f.get('weight'),reps:+f.get('reps'),sets:+f.get('sets'),note:f.get('note')||''
+    clientId:state.activeClientId,
+    date:f.get('date'),
+    exercise:f.get('exercise'),
+    weight:top.weight,
+    reps:top.reps,
+    sets:sets.length,
+    note:encodeTrainingNote(sets,f.get('note')||'')
   };
+
   if(editingTrainingId){
     const row=state.training.find(x=>x.id===editingTrainingId);
     if(row)Object.assign(row,payload);
@@ -216,7 +326,8 @@ document.getElementById('trainingForm').addEventListener('submit',e=>{
     state.training.push({id:crypto.randomUUID(),...payload});
   }
   editingTrainingId=null;
-  save();setTimeout(render);
+  save();
+  setTimeout(render);
 });
 document.getElementById('bodyForm').addEventListener('submit',e=>{
   const f=new FormData(e.currentTarget);
@@ -332,10 +443,8 @@ function editTraining(id){
   refreshExercises();
   form.elements.date.value=x.date||today();
   form.elements.exercise.value=x.exercise||'';
-  form.elements.weight.value=x.weight??'';
-  form.elements.reps.value=x.reps??'';
-  form.elements.sets.value=x.sets??1;
-  form.elements.note.value=x.note||'';
+  form.elements.note.value=visibleTrainingNote(x);
+  resetTrainingSetRows(parseTrainingSets(x));
   document.getElementById('trainingDialog').showModal();
 }
 function editBody(id){
@@ -467,7 +576,7 @@ document.getElementById('exportCsvBtn').onclick=()=>{
   const lines=[
     ['クライアント',c.name],['目標',c.goal||''],[],
     ['TRAINING'],['日付','種目','重量kg','回数','セット','RPE','推定1RMkg'],
-    ...tr.map(x=>[x.date,x.exercise,x.weight,x.reps,x.sets,x.rpe,n(e1rm(x.weight,x.reps))]),
+    ...tr.map(x=>[x.date,x.exercise,x.weight,x.reps,x.sets,x.rpe,n(recordBest1RM(x))]),
     [],['BODY'],['日付','体重kg','体脂肪%','水分L','睡眠h','歩数','体調','メモ'],
     ...bd.map(x=>[x.date,x.bodyWeight||'',x.bodyFat||'',x.water||'',x.sleep||'',x.steps||'',x.condition||'',x.note||''])
   ];
@@ -553,8 +662,8 @@ function render(){
   const prevBd=previousPeriodRows(bdAll);
 
   const lastW=latest(bdAll,'bodyWeight'),lastWater=latest(bdAll,'water'),lastSleep=latest(bdAll,'sleep');
-  const best=trAll.length?Math.max(...trAll.map(x=>e1rm(x.weight,x.reps))):null;
-  const vol=trAll.reduce((s,x)=>s+x.weight*x.reps*x.sets,0);
+  const best=trAll.length?Math.max(...trAll.map(x=>recordBest1RM(x))):null;
+  const vol=trAll.reduce((s,x)=>s+trainingVolume(x),0);
   const kpis=[
     ['最新体重',lastW==null?'—':n(lastW)+' kg'],
     ['水分量',lastWater==null?'—':n(lastWater)+' L'],
@@ -564,19 +673,23 @@ function render(){
   ];
   document.getElementById('kpiGrid').innerHTML=kpis.map(x=>`<article class="card kpi"><div class="label">${x[0]}</div><div class="value">${x[1]}</div></article>`).join('');
 
-  const curVol=tr.reduce((s,x)=>s+x.weight*x.reps*x.sets,0),prevVol=prevTr.reduce((s,x)=>s+x.weight*x.reps*x.sets,0);
+  const curVol=tr.reduce((s,x)=>s+trainingVolume(x),0),prevVol=prevTr.reduce((s,x)=>s+trainingVolume(x),0);
   const curSleep=avg(bd,'sleep'),prevSleep=avg(prevBd,'sleep');
   const curWater=avg(bd,'water'),prevWater=avg(prevBd,'water');
   const curCond=avg(bd,'condition'),prevCond=avg(prevBd,'condition');
   const comp=[
-    ['期間ボリューム',...compareValue(curVol,prevVol,'',true)],
     ['平均睡眠',...compareValue(curSleep,prevSleep,'',true)],
     ['平均水分',...compareValue(curWater,prevWater,'',true)],
     ['平均体調',...compareValue(curCond,prevCond,'',true)]
   ];
   document.getElementById('comparisonStrip').innerHTML='<strong>前期間比</strong>'+comp.map(([l,v,cl])=>`<div class="compare-item"><span class="compare-label">${l}</span><span class="compare-value ${cl}">${v}</span></div>`).join('');
 
-  document.getElementById('trainingTable').innerHTML=tr.slice().reverse().slice(0,20).map(x=>`<tr><td>${x.date}</td><td>${esc(x.exercise)}</td><td>${x.weight}kg</td><td>${x.reps}</td><td>${n(e1rm(x.weight,x.reps))}kg</td><td><div class="table-actions"><button class="edit-btn" onclick="editTraining('${x.id}')">編集</button><button class="action-btn" onclick="removeTraining('${x.id}')">削除</button></div></td></tr>`).join('')||'<tr><td colspan="6">まだ記録がありません</td></tr>';
+  document.getElementById('trainingTable').innerHTML=tr.slice().reverse().slice(0,20).map(x=>{
+    const sets=parseTrainingSets(x);
+    const setText=sets.map((s,i)=>`${i+1}. ${s.weight}kg × ${s.reps}回`).join('<br>');
+    const top=sets[0]||{weight:x.weight,reps:x.reps};
+    return `<tr><td>${x.date}</td><td>${esc(x.exercise)}</td><td colspan="2">${setText||`${top.weight}kg × ${top.reps}回`}</td><td>${n(recordBest1RM(x))}kg</td><td><div class="table-actions"><button class="edit-btn" onclick="editTraining('${x.id}')">編集</button><button class="action-btn" onclick="removeTraining('${x.id}')">削除</button></div></td></tr>`;
+  }).join('')||'<tr><td colspan="6">まだ記録がありません</td></tr>';
 
   const last7=bdAll.slice(-7);
   document.getElementById('conditionSummary').innerHTML=[
@@ -587,7 +700,7 @@ function render(){
 
   const startWeight=bd.length?bd.find(x=>x.bodyWeight)?.bodyWeight:null;
   const endWeight=bd.length?[...bd].reverse().find(x=>x.bodyWeight)?.bodyWeight:null;
-  const periodBest=tr.length?Math.max(...tr.map(x=>e1rm(x.weight,x.reps))):null;
+  const periodBest=tr.length?Math.max(...tr.map(x=>recordBest1RM(x))):null;
   const report=[
     ['表示期間',periodDays?`直近${periodDays}日`:'全期間'],
     ['トレーニング回数',`${tr.length}件`],
@@ -613,10 +726,10 @@ function render(){
   const [latestSet,prevSet]=latestTwo(allExerciseRows);
 
   const bestWeight=progressRows.length?Math.max(...progressRows.map(x=>Number(x.weight)||0)):null;
-  const bestOrm=progressRows.length?Math.max(...progressRows.map(x=>e1rm(x.weight,x.reps))):null;
+  const bestOrm=progressRows.length?Math.max(...progressRows.map(x=>recordBest1RM(x))):null;
   const latestWeight=latestSet?.weight??null;
-  const latestOrm=latestSet?e1rm(latestSet.weight,latestSet.reps):null;
-  const prevOrm=prevSet?e1rm(prevSet.weight,prevSet.reps):null;
+  const latestOrm=latestSet?recordBest1RM(latestSet):null;
+  const prevOrm=prevSet?recordBest1RM(prevSet):null;
 
   document.getElementById('progressBestWeight').textContent=bestWeight?`${n(bestWeight)} kg`:'—';
   document.getElementById('progressBestOrm').textContent=bestOrm?`${n(bestOrm)} kg`:'—';
@@ -626,7 +739,7 @@ function render(){
   document.getElementById('progressRepsChange').textContent=latestSet&&prevSet?signed(Number(latestSet.reps)-Number(prevSet.reps),0,'回'):'—';
   document.getElementById('progressOrmChange').textContent=latestSet&&prevSet?signed(latestOrm-prevOrm,1,' kg'):'—';
 
-  const previousBestOrm=allExerciseRows.length>1?Math.max(...allExerciseRows.slice(0,-1).map(x=>e1rm(x.weight,x.reps))):null;
+  const previousBestOrm=allExerciseRows.length>1?Math.max(...allExerciseRows.slice(0,-1).map(x=>recordBest1RM(x))):null;
   const prBanner=document.getElementById('prBanner');
   if(latestOrm && previousBestOrm && latestOrm>previousBestOrm){
     prBanner.hidden=false;
@@ -634,7 +747,7 @@ function render(){
   }else if(prBanner){prBanner.hidden=true}
 
   drawLine('exerciseWeightChart',progressRows.map(x=>({date:x.date,value:x.weight})));
-  drawLine('exerciseOrmChart',progressRows.map(x=>({date:x.date,value:e1rm(x.weight,x.reps)})));
+  drawLine('exerciseOrmChart',progressRows.map(x=>({date:x.date,value:recordBest1RM(x)})));
   drawBars('exerciseVolumeChart',groupVolumeByDate(progressRows));
 
   // Client-level progress summary (last 90 days vs previous 90 days)
@@ -646,10 +759,10 @@ function render(){
   const prev90=trAll.filter(x=>{const d=new Date(x.date+'T00:00:00');return d>=start180&&d<start90});
   const prevBody90=bdAll.filter(x=>{const d=new Date(x.date+'T00:00:00');return d>=start180&&d<start90});
 
-  const curBest=cur90.length?Math.max(...cur90.map(x=>e1rm(x.weight,x.reps))):null;
-  const prevBest=prev90.length?Math.max(...prev90.map(x=>e1rm(x.weight,x.reps))):null;
-  const curVol90=cur90.reduce((s,x)=>s+x.weight*x.reps*x.sets,0);
-  const prevVol90=prev90.reduce((s,x)=>s+x.weight*x.reps*x.sets,0);
+  const curBest=cur90.length?Math.max(...cur90.map(x=>recordBest1RM(x))):null;
+  const prevBest=prev90.length?Math.max(...prev90.map(x=>recordBest1RM(x))):null;
+  const curVol90=cur90.reduce((s,x)=>s+trainingVolume(x),0);
+  const prevVol90=prev90.reduce((s,x)=>s+trainingVolume(x),0);
   const curWeight=latest(body90,'bodyWeight');
   const prevWeight=latest(prevBody90,'bodyWeight');
 
@@ -672,7 +785,7 @@ function render(){
   drawLine('waterChart',bd.filter(x=>x.water).map(x=>({date:x.date,value:x.water})));
   drawLine('sleepChart',bd.filter(x=>x.sleep).map(x=>({date:x.date,value:x.sleep})));
   drawLine('stepsChart',bd.filter(x=>x.steps).map(x=>({date:x.date,value:x.steps})));
-  drawLine('ormChart',tr.map(x=>({date:x.date,value:e1rm(x.weight,x.reps)})));
+  drawLine('ormChart',tr.map(x=>({date:x.date,value:recordBest1RM(x)})));
   drawBars('volumeChart',groupVolumeByDate(tr));
   applyView(currentView);
 }
