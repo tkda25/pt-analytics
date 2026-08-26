@@ -405,10 +405,15 @@ clientSearchResults.addEventListener('click',e=>{
   clientSearch.value='';
   clientSearchResults.hidden=true;
 
-  // Client List -> search -> tap = open that client's dashboard.
+  // 必ず選択したクライアントのダッシュボードへ遷移
   currentView='dashboard';
+  closeMobileMenu();
+  applyView('dashboard');
   render();
   applyView('dashboard');
+  requestAnimationFrame(()=>{
+    window.scrollTo({top:0,left:0,behavior:'auto'});
+  });
 });
 
 document.addEventListener('click',e=>{

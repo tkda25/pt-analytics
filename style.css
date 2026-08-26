@@ -304,3 +304,6 @@ body.clients-view .search-empty{
   color:var(--muted);
 }
 .search-result:active{transform:scale(.995)}
+
+/* v17: dashboard transition hardening */
+body:not(.clients-view) #viewTitle{display:block}
