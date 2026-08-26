@@ -3,10 +3,10 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <title>PT Analytics v21</title>
-  <link rel="stylesheet" href="style.css?v=21" />
+  <title>PT Analytics v22</title>
+  <link rel="stylesheet" href="style.css?v=22" />
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-  <script src="config.js?v=21"></script>
+  <script src="config.js?v=22"></script>
 </head>
 <body>
     <section id="authGate" class="auth-gate">
@@ -50,7 +50,10 @@
     <main>
       <div class="view-heading">
         <p class="eyebrow">MENU</p>
-        <h2 id="viewTitle">ダッシュボード</h2>
+        <div class="view-title-row">
+          <h2 id="viewTitle">ダッシュボード</h2>
+          <span id="viewClientName" class="view-client-name">未登録</span>
+        </div>
       </div>
       <header class="topbar">
         <div class="client-heading">
@@ -153,16 +156,6 @@
         <div><strong>トレーニング</strong><span>種目ごとの成長と履歴を管理</span></div>
         <button class="primary" data-open="training">＋ トレーニング記録</button>
       </section>
-      <section class="grid two" id="trainingChartsSection" data-section="training">
-        <article class="card chart-card">
-          <div class="card-head"><h3>推定1RMの推移</h3><span>kg</span></div>
-          <svg id="ormChart" viewBox="0 0 700 260" preserveAspectRatio="none"></svg>
-        </article>
-        <article class="card chart-card">
-          <div class="card-head"><h3>1日ごとの総ボリューム</h3><span>kg</span></div>
-          <svg id="volumeChart" viewBox="0 0 700 260" preserveAspectRatio="none"></svg>
-        </article>
-      </section>
       <section class="grid two" id="conditionSection" data-section="condition">
         <article class="card chart-card">
           <div class="card-head"><h3>睡眠時間の推移</h3><span>h / 日</span></div>
@@ -243,7 +236,7 @@
   <dialog id="trainingDialog">
     <form id="trainingForm" method="dialog">
       <h2 id="trainingDialogTitle">トレーニングを記録</h2>
-      <label>日付<input name="date" type="date" required></label>
+      <input name="date" type="hidden" required>
       <label>部位<select name="bodyPart" id="bodyPartSelect" required>
         <option value="">選択してください</option>
         <option value="胸">胸</option>
@@ -313,6 +306,6 @@
     </form>
   </dialog>
 
-  <script src="app.js?v=21"></script>
+  <script src="app.js?v=22"></script>
 </body>
 </html>

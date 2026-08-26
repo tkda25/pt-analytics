@@ -445,3 +445,11 @@ body:not(.clients-view) #clientBtn{display:none!important}
 .card:has(#oneRmChart), .card:has(#volumeChart){display:none!important}
 
 button[data-open="training"]{display:none!important}
+
+/* v22 */
+.view-title-row{display:flex;align-items:baseline;gap:12px;flex-wrap:wrap}
+.view-client-name{font-size:16px;font-weight:700;color:#71839d}
+body:not(.clients-view) .client-search-wrap{display:none!important}
+#trainingChartsSection{display:none!important}
+
+.view-actionbar[data-section="training"]{display:none!important}
