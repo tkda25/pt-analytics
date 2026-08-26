@@ -466,7 +466,7 @@ document.getElementById('periodTabs').onclick=e=>{
   document.querySelectorAll('#periodTabs button').forEach(b=>b.classList.toggle('active',b===e.target));
   render();
 };
-exerciseFilter.onchange=render;
+if(exerciseFilter)exerciseFilter.onchange=render;
 progressExerciseSelect.onchange=render;
 progressRangeSelect.onchange=render;
 
@@ -474,9 +474,11 @@ function refreshExercises(){
   const sel=document.getElementById('exerciseSelect'),current=sel.value;
   sel.innerHTML=state.exercises.map(x=>`<option>${esc(x)}</option>`).join('');
   if(state.exercises.includes(current))sel.value=current;
-  const fcur=exerciseFilter.value;
-  exerciseFilter.innerHTML='<option value="">全種目</option>'+state.exercises.map(x=>`<option>${esc(x)}</option>`).join('');
-  exerciseFilter.value=fcur;
+  if(exerciseFilter){
+    const fcur=exerciseFilter.value;
+    exerciseFilter.innerHTML='<option value="">全種目</option>'+state.exercises.map(x=>`<option>${esc(x)}</option>`).join('');
+    exerciseFilter.value=fcur;
+  }
   const pcur=progressExerciseSelect?.value;
   const activeExercises=[...new Set(clientRows(state.training).map(x=>x.exercise))];
   const source=activeExercises.length?activeExercises:state.exercises;
@@ -820,9 +822,9 @@ function render(){
   document.getElementById('clientGoal').textContent='目標：'+(c.goal||'未設定');
 
   const trAll=clientRows(state.training),bdAll=clientRows(state.body);
-  const tr=trAll.filter(x=>withinDays(x)).filter(x=>!exerciseFilter.value||x.exercise===exerciseFilter.value);
+  const tr=trAll.filter(x=>withinDays(x)).filter(x=>!exerciseFilter?.value||x.exercise===exerciseFilter.value);
   const bd=bdAll.filter(x=>withinDays(x));
-  const prevTr=previousPeriodRows(trAll).filter(x=>!exerciseFilter.value||x.exercise===exerciseFilter.value);
+  const prevTr=previousPeriodRows(trAll).filter(x=>!exerciseFilter?.value||x.exercise===exerciseFilter.value);
   const prevBd=previousPeriodRows(bdAll);
 
   const lastW=latest(bdAll,'bodyWeight'),lastWater=latest(bdAll,'water'),lastSleep=latest(bdAll,'sleep');
@@ -849,7 +851,8 @@ function render(){
   ];
   document.getElementById('comparisonStrip').innerHTML='<strong>前期間比</strong>'+comp.map(([l,v,cl])=>`<div class="compare-item"><span class="compare-label">${l}</span><span class="compare-value ${cl}">${v}</span></div>`).join('');
 
-  document.getElementById('trainingTable').innerHTML=tr.slice().reverse().slice(0,20).map(x=>{
+  const trainingTable=document.getElementById('trainingTable');
+  if(trainingTable)trainingTable.innerHTML=tr.slice().reverse().slice(0,20).map(x=>{
     const sets=parseTrainingSets(x);
     const setText=sets.map((s,i)=>`${i+1}. ${s.weight}kg × ${s.reps}回`).join('<br>');
     const top=sets[0]||{weight:x.weight,reps:x.reps};
