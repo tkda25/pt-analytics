@@ -458,3 +458,22 @@ body.clients-view #clientListPanel{display:block!important}
 /* v25: client search/list is exclusive to クライアント一覧 */
 body:not(.clients-view) #clientListPanel,
 body:not(.clients-view) .client-list-card{display:none!important}
+
+/* v26 */
+.client-list-alphabet-hint{
+  margin:2px 0 10px;
+  color:var(--muted);
+  font-size:12px;
+  font-weight:700;
+  letter-spacing:.02em;
+}
+body:not(.clients-view) #clientListPanel{display:none!important}
+#clientList{
+  display:grid;
+  grid-template-columns:1fr;
+  gap:8px;
+}
+#clientList .client-list-item{
+  width:100%;
+  text-align:left;
+}

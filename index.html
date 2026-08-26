@@ -3,10 +3,10 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <title>PT Analytics v25</title>
-  <link rel="stylesheet" href="style.css?v=25-0826a" />
+  <title>PT Analytics v26</title>
+  <link rel="stylesheet" href="style.css?v=26-0826a" />
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-  <script src="config.js?v=25-0826a"></script>
+  <script src="config.js?v=26-0826a"></script>
 <style id="v24-critical">
 .compat-hidden{display:none!important}
 .view-title-row{display:flex;align-items:baseline;gap:12px;flex-wrap:wrap}
@@ -56,7 +56,7 @@
 
     <main>
       <div class="view-heading">
-        <p class="eyebrow">MENU <small class="build-marker">v25</small></p>
+        <p class="eyebrow">MENU <small class="build-marker">v26</small></p>
         <div class="view-title-row">
           <h2 id="viewTitle">ダッシュボード</h2>
           <span id="viewClientName" class="view-client-name">未登録</span>
@@ -124,7 +124,7 @@
           <input id="clientListSearch" type="search" placeholder="名前で検索">
           <button id="addClientShortcut" class="secondary-btn">＋ 新規クライアント</button>
         </div>
-        <div id="clientList" class="client-list"></div>
+        <div id="clientListAlphabetHint" class="client-list-alphabet-hint">あいうえお順</div><div id="clientList" class="client-list"></div>
       </section>
 
 
@@ -177,7 +177,6 @@
         <div id="prBanner" class="pr-banner" hidden>🏆 自己ベスト更新</div>
         <div class="exercise-progress-grid">
           <div class="mini-stat"><span>最高重量</span><strong id="progressBestWeight">—</strong></div>
-          <div class="mini-stat"><span>推定1RM BEST</span><strong id="progressBestOrm">—</strong></div>
           <div class="mini-stat"><span>直近重量</span><strong id="progressLatestWeight">—</strong></div>
           <div class="mini-stat"><span>記録数</span><strong id="progressRecordCount">—</strong></div>
           <div class="mini-stat"><span>前回比 重量</span><strong id="progressWeightChange">—</strong></div>
@@ -301,6 +300,6 @@
     </form>
   </dialog>
 
-  <script src="app.js?v=25-0826a"></script>
+  <script src="app.js?v=26-0826a"></script>
 </body>
 </html>
