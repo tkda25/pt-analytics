@@ -530,3 +530,17 @@ body:not(.clients-view) #clientListPanel{display:none!important}
 }
 
 .axis-label{font-size:12px;fill:#6f8199;font-weight:700;}
+
+.chart-value-label{font-size:11px;fill:#10243d;font-weight:700}.axis-title{font-size:11px;fill:#6f8199;font-weight:700}
+
+/* v29.8 body chart axis labels */
+.chart-axis-date{
+  font-size:11px;
+  fill:#6f8199;
+  font-weight:700;
+}
+.chart-axis-value{
+  font-size:11px;
+  fill:#6f8199;
+  font-weight:700;
+}

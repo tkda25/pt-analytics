@@ -1054,16 +1054,57 @@ function scale(data){
   const W=700,H=260,p=35,vals=data.map(x=>Number(x.value)),min=Math.min(...vals),max=Math.max(...vals),span=max-min||1;
   return {W,H,p,min,max,x:i=>p+(W-2*p)*(data.length===1?.5:i/(data.length-1)),y:v=>H-p-(H-2*p)*(Number(v)-min)/span};
 }
-function axes(s,sc,data){
-  [0,.5,1].forEach(q=>{const y=sc.p+(sc.H-2*sc.p)*q;s.appendChild(svgEl('line',{x1:sc.p,y1:y,x2:sc.W-sc.p,y2:y,class:'axis'}))});
-  data.forEach((d,i)=>{if(i===0||i===data.length-1){const t=svgEl('text',{x:sc.x(i),y:sc.H-8,class:'chart-label','text-anchor':'middle'});t.textContent=d.date.slice(5);s.appendChild(t)}})
+function axes(s,sc,data,unit=''){
+  [0,.5,1].forEach(q=>{
+    const y=sc.p+(sc.H-2*sc.p)*q;
+    s.appendChild(svgEl('line',{x1:sc.p,y1:y,x2:sc.W-sc.p,y2:y,class:'axis'}));
+
+    if(unit){
+      const value=sc.max-(sc.max-sc.min)*q;
+      const yt=svgEl('text',{
+        x:sc.p-8,
+        y:y+4,
+        class:'chart-axis-value',
+        'text-anchor':'end'
+      });
+      const rounded=Math.abs(value)>=100 ? Math.round(value) : Math.round(value*10)/10;
+      yt.textContent=`${rounded}${unit}`;
+      s.appendChild(yt);
+    }
+  });
+
+  data.forEach((d,i)=>{
+    const showAllDates=!!unit;
+    if(showAllDates || i===0 || i===data.length-1){
+      const t=svgEl('text',{
+        x:sc.x(i),
+        y:sc.H-8,
+        class:'chart-axis-date',
+        'text-anchor':'middle'
+      });
+      const raw=String(d.date||'');
+      const mmdd=raw.length>=10 ? raw.slice(5).replace('-','/') : raw;
+      t.textContent=mmdd;
+      s.appendChild(t);
+    }
+  });
 }
 function emptyChart(s){const t=svgEl('text',{x:350,y:130,class:'chart-label','text-anchor':'middle'});t.textContent='データを記録するとグラフが表示されます';s.appendChild(t)}
 function drawLine(id,data){
-  const s=clearSvg(id);if(!data.length)return emptyChart(s);const sc=scale(data);axes(s,sc,data);
+  const s=clearSvg(id);if(!data.length)return emptyChart(s);
+  const sc=scale(data);
+  const unit=id==='weightChart'?'kg':id==='waterChart'?'L':'';
+  axes(s,sc,data,unit);
+
   const d=data.map((v,i)=>(i?'L':'M')+sc.x(i)+' '+sc.y(v.value)).join(' ');
   s.appendChild(svgEl('path',{d,class:'line'}));
   data.forEach((v,i)=>s.appendChild(svgEl('circle',{cx:sc.x(i),cy:sc.y(v.value),r:4,class:'point'})));
+
+  if(unit){
+    const xl=svgEl('text',{x:sc.W/2,y:sc.H-1,class:'axis-title','text-anchor':'middle'});
+    xl.textContent='日付';
+    s.appendChild(xl);
+  }
 }
 function drawBars(id,data){
   const s=clearSvg(id);if(!data.length)return emptyChart(s);const sc=scale(data);axes(s,sc,data);
