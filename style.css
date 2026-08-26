@@ -477,3 +477,20 @@ body:not(.clients-view) #clientListPanel{display:none!important}
   width:100%;
   text-align:left;
 }
+
+/* v27 */
+.previous-training-card{padding:16px;margin-bottom:16px}
+.previous-training-content{display:grid;gap:10px}
+.previous-training-item{border:1px solid var(--line);border-radius:12px;padding:12px;background:#fff}
+.previous-training-item-head{display:flex;justify-content:space-between;gap:10px;align-items:center;margin-bottom:8px}
+.previous-training-sets{display:flex;flex-wrap:wrap;gap:6px}
+.previous-set-chip{background:#f3f6fa;border-radius:999px;padding:5px 8px;font-size:12px;color:#526174}
+.training-day-actions{display:flex;gap:6px;margin-top:10px}
+.training-day-actions button{border:1px solid var(--line);background:#fff;border-radius:9px;padding:7px 10px;font-size:12px;font-weight:700}
+.training-day-actions .danger-btn-mini{color:#b33a3a;border-color:#efcaca}
+.report-metrics{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;margin:14px 0}
+.report-metric{border:1px solid var(--line);border-radius:12px;padding:12px;background:#fff}
+.report-metric span{display:block;color:var(--muted);font-size:12px;margin-bottom:5px}
+.report-metric strong{font-size:20px}
+.report-bodypart-list{display:grid;gap:7px}
+.report-bodypart-row{display:flex;justify-content:space-between;gap:12px;font-size:13px;border-bottom:1px solid var(--line);padding:7px 0}

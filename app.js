@@ -307,7 +307,7 @@ document.querySelectorAll('[data-open]').forEach(b=>b.onclick=()=>{
   }
   if(type==='body'){
     editingBodyId=null;
-    document.getElementById('bodyDialogTitle').textContent='身体・生活データを記録';
+    document.getElementById('bodyDialogTitle').textContent='身体データを記録';
     document.getElementById('bodyForm').reset();
   }
   const date=d.querySelector('[name=date]'); if(date) date.value=today();
@@ -349,7 +349,7 @@ document.getElementById('bodyForm').addEventListener('submit',e=>{
   const f=new FormData(e.currentTarget);
   const payload={
     clientId:state.activeClientId,date:f.get('date'),
-    bodyWeight:+f.get('bodyWeight'),bodyFat:+f.get('bodyFat')||null,water:+f.get('water')||null,
+    bodyWeight:+f.get('bodyWeight'),bodyFat:null,water:+f.get('water')||null,
     sleep:+f.get('sleep')||null,steps:+f.get('steps')||null,condition:+f.get('condition')||null,note:f.get('note')||''
   };
   if(editingBodyId){
@@ -391,7 +391,9 @@ document.getElementById('newClientBtn').onclick=()=>{clientForm.reset();clientSe
 clientForm.addEventListener('submit',e=>{
   const f=new FormData(clientForm),selected=clientSelect.value;
   let c=selected?state.clients.find(x=>x.id===selected):null;
-  if(!c){c={id:crypto.randomUUID()};state.clients.push(c)}
+  if(!c){
+    renderPreviousTraining([]);
+    renderPracticalReport([],[]);c={id:crypto.randomUUID()};state.clients.push(c)}
   Object.assign(c,{name:f.get('name'),age:+f.get('age')||'',sex:f.get('sex'),height:+f.get('height')||'',goal:f.get('goal')});
   state.activeClientId=c.id;save();setTimeout(render);
 });
@@ -468,10 +470,9 @@ function editBody(id){
   const x=state.body.find(r=>r.id===id);if(!x)return;
   editingBodyId=id;
   const form=document.getElementById('bodyForm');
-  document.getElementById('bodyDialogTitle').textContent='身体・生活データを編集';
+  document.getElementById('bodyDialogTitle').textContent='身体データを編集';
   form.elements.date.value=x.date||today();
   form.elements.bodyWeight.value=x.bodyWeight??'';
-  form.elements.bodyFat.value=x.bodyFat??'';
   form.elements.water.value=x.water??'';
   form.elements.sleep.value=x.sleep??'';
   form.elements.steps.value=x.steps??'';
@@ -608,8 +609,8 @@ document.getElementById('exportCsvBtn').onclick=()=>{
     ['クライアント',c.name],['目標',c.goal||''],[],
     ['TRAINING'],['日付','種目','重量kg','回数','セット','RPE','推定1RMkg'],
     ...tr.map(x=>[x.date,x.exercise,x.weight,x.reps,x.sets,x.rpe,n(recordBest1RM(x))]),
-    [],['BODY'],['日付','体重kg','体脂肪%','水分L','睡眠h','歩数','体調','メモ'],
-    ...bd.map(x=>[x.date,x.bodyWeight||'',x.bodyFat||'',x.water||'',x.sleep||'',x.steps||'',x.condition||'',x.note||''])
+    [],['BODY'],['日付','体重kg','水分L','睡眠h','歩数','体調','メモ'],
+    ...bd.map(x=>[x.date,x.bodyWeight||'',x.water||'',x.sleep||'',x.steps||'',x.condition||'',x.note||''])
   ];
   const csv='\ufeff'+lines.map(r=>r.map(v=>`"${String(v??'').replace(/"/g,'""')}"`).join(',')).join('\n');
   download(`pt-analytics-${c.name}-${today()}.csv`,csv,'text/csv;charset=utf-8');
@@ -708,6 +709,10 @@ function renderTrainingCalendarArea(rows){
           <span class="session-volume">${Math.round(trainingVolume(r)).toLocaleString()} kg</span>
         </div>
         <div class="session-set-list">${sets.map((s,i)=>`<div class="session-set-row"><span>${i+1}</span><span>${s.weight} kg</span><span>${s.reps} 回</span></div>`).join('')}</div>
+        <div class="training-day-actions">
+          <button type="button" data-edit-training="${r.id}">編集</button>
+          <button type="button" class="danger-btn-mini" data-delete-training="${r.id}">削除</button>
+        </div>
       </div>`;
     }).join(''):'<div class="calendar-empty">この日のトレーニング記録はありません。</div>';
   }
@@ -747,6 +752,65 @@ function removeEstimated1RmBestUi(){
   document.querySelectorAll('#kpiGrid > *, #progressSummaryGrid > *, .exercise-progress-grid > *, #reportSummary > *').forEach(el=>{
     if(/推定1RM BEST|期間BEST 推定1RM/.test(el.textContent||'')) el.remove();
   });
+}
+
+
+function renderPreviousTraining(rows){
+  const dateEl=document.getElementById('previousTrainingDate');
+  const content=document.getElementById('previousTrainingContent');
+  if(!dateEl||!content)return;
+  if(!rows.length){
+    dateEl.textContent='—';
+    content.innerHTML='<div class="empty-state">まだトレーニング記録がありません</div>';
+    return;
+  }
+  const latestDate=[...rows].map(r=>r.date).sort().at(-1);
+  const latest=rows.filter(r=>r.date===latestDate);
+  const d=new Date(`${latestDate}T00:00:00`);
+  dateEl.textContent=`${d.getMonth()+1}/${d.getDate()}`;
+  content.innerHTML=latest.map(r=>{
+    const part=trainingBodyPart(r)||'未設定';
+    const sets=parseTrainingSets(r);
+    return `<div class="previous-training-item">
+      <div class="previous-training-item-head"><strong>${esc(r.exercise)}</strong><span class="bodypart-badge"><i class="calendar-dot" style="background:${BODY_PART_COLORS[part]||'#94a3b8'}"></i>${esc(part)}</span></div>
+      <div class="previous-training-sets">${sets.map((s,i)=>`<span class="previous-set-chip">${i+1}セット ${s.weight}kg × ${s.reps}回</span>`).join('')}</div>
+    </div>`;
+  }).join('');
+}
+
+function renderPracticalReport(rows,bodyRows){
+  const metrics=document.getElementById('reportMetrics');
+  if(!metrics)return;
+  const cutoff=Date.now()-90*86400000;
+  const recent90=rows.filter(r=>new Date(`${r.date}T00:00:00`).getTime()>=cutoff);
+  const sortedBody=bodyRows.slice().sort((a,b)=>a.date.localeCompare(b.date));
+  const first=sortedBody.find(x=>x.bodyWeight!=null);
+  const last=[...sortedBody].reverse().find(x=>x.bodyWeight!=null);
+  const weightChange=(first&&last)?Number(last.bodyWeight)-Number(first.bodyWeight):null;
+
+  const volumes=Object.fromEntries(BODY_PARTS.map(p=>[p,0]));
+  recent90.forEach(r=>{const p=trainingBodyPart(r);if(p)volumes[p]+=trainingVolume(r)});
+
+  const groups={};
+  recent90.forEach(r=>(groups[r.exercise]||(groups[r.exercise]=[])).push(r));
+  let growth=null;
+  Object.entries(groups).forEach(([exercise,list])=>{
+    const sorted=list.slice().sort((a,b)=>a.date.localeCompare(b.date));
+    if(sorted.length<2)return;
+    const a=recordTopSet(sorted[0]),b=recordTopSet(sorted.at(-1));
+    if(!a.weight||!b.weight)return;
+    const pct=(b.weight-a.weight)/a.weight*100;
+    if(growth==null||pct>growth.pct)growth={exercise,from:a.weight,to:b.weight,pct};
+  });
+
+  const bp=BODY_PARTS.filter(p=>volumes[p]>0).sort((a,b)=>volumes[b]-volumes[a])
+    .map(p=>`<div class="report-bodypart-row"><span>${p}</span><strong>${Math.round(volumes[p]).toLocaleString()} kg</strong></div>`).join('');
+
+  metrics.innerHTML=`
+    <div class="report-metric"><span>直近3ヶ月のトレーニング回数</span><strong>${recent90.length}件</strong></div>
+    <div class="report-metric"><span>体重変化</span><strong>${weightChange==null?'—':`${weightChange>0?'+':''}${weightChange.toFixed(1)} kg`}</strong></div>
+    <div class="report-metric"><span>主要種目の成長</span><strong>${growth?`${esc(growth.exercise)} ${growth.from}→${growth.to}kg`:'—'}</strong></div>
+    <div class="report-metric"><span>部位別ボリューム</span><div class="report-bodypart-list">${bp||'—'}</div></div>`;
 }
 
 function render(){
@@ -791,6 +855,8 @@ function render(){
   document.getElementById('clientGoal').textContent='目標：'+(c.goal||'未設定');
 
   const trAll=clientRows(state.training),bdAll=clientRows(state.body);
+  renderPreviousTraining(trAll);
+  renderPracticalReport(trAll,bdAll);
   renderTrainingCalendarArea(trAll);
   const tr=trAll.filter(x=>withinDays(x)).filter(x=>!exerciseFilter.value||x.exercise===exerciseFilter.value);
   const bd=bdAll.filter(x=>withinDays(x));
@@ -831,7 +897,7 @@ function render(){
     ['💧',avg(last7,'water'),'L','平均水分'],['😴',avg(last7,'sleep'),'h','平均睡眠'],['🚶',avg(last7,'steps'),'','平均歩数'],['⚡',avg(last7,'condition'),'/10','平均体調']
   ].map(([i,v,u,t])=>`<div class="condition"><div class="icon">${i}</div><div class="num">${v==null?'—':(u===''?Math.round(v).toLocaleString():n(v))}${v==null?'':u}</div><div class="txt">${t}</div></div>`).join('');
 
-  document.getElementById('bodyTable').innerHTML=bdAll.slice().reverse().slice(0,20).map(x=>`<tr><td>${x.date}</td><td>${x.bodyWeight||'—'}</td><td>${x.bodyFat||'—'}</td><td>${x.water||'—'}</td><td>${x.sleep||'—'}</td><td>${x.steps?Number(x.steps).toLocaleString():'—'}</td><td>${x.condition||'—'}</td><td><div class="table-actions"><button class="edit-btn" onclick="editBody('${x.id}')">編集</button><button class="action-btn" onclick="removeBody('${x.id}')">削除</button></div></td></tr>`).join('')||'<tr><td colspan="8">まだ記録がありません</td></tr>';
+  document.getElementById('bodyTable').innerHTML=bdAll.slice().reverse().slice(0,20).map(x=>`<tr><td>${x.date}</td><td>${x.bodyWeight||'—'}</td><td>${x.water||'—'}</td><td>${x.sleep||'—'}</td><td>${x.steps?Number(x.steps).toLocaleString():'—'}</td><td>${x.condition||'—'}</td><td><div class="table-actions"><button class="edit-btn" onclick="editBody('${x.id}')">編集</button><button class="action-btn" onclick="removeBody('${x.id}')">削除</button></div></td></tr>`).join('')||'<tr><td colspan="7">まだ記録がありません</td></tr>';
 
   const startWeight=bd.length?bd.find(x=>x.bodyWeight)?.bodyWeight:null;
   const endWeight=bd.length?[...bd].reverse().find(x=>x.bodyWeight)?.bodyWeight:null;
@@ -1075,6 +1141,14 @@ clientList?.addEventListener('click',e=>{
   applyView('dashboard');
   closeMobileMenu();
   window.scrollTo({top:0,left:0,behavior:'auto'});
+});
+
+
+document.getElementById('selectedTrainingDayDetails')?.addEventListener('click',e=>{
+  const editBtn=e.target.closest('[data-edit-training]');
+  if(editBtn){ editTraining(editBtn.dataset.editTraining); return; }
+  const delBtn=e.target.closest('[data-delete-training]');
+  if(delBtn){ removeTraining(delBtn.dataset.deleteTraining); }
 });
 
 render();
