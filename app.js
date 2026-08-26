@@ -672,7 +672,9 @@ function renderTrainingCalendarArea(rows){
   const title=document.getElementById('selectedTrainingDateTitle');
   const details=document.getElementById('selectedTrainingDayDetails');
   const dayVol=document.getElementById('selectedDayVolume');
+  const addBtn=document.getElementById('calendarAddTrainingBtn');
   const selectedRows=selectedTrainingDate?rows.filter(r=>r.date===selectedTrainingDate):[];
+  if(addBtn)addBtn.hidden=!selectedTrainingDate;
 
   if(!selectedTrainingDate){
     title.textContent='日付を選択'; dayVol.textContent='';
@@ -704,6 +706,19 @@ function renderTrainingCalendarArea(rows){
     const v=totals[p], pct=v/max*100;
     return `<div class="bodypart-volume-item"><div class="bodypart-volume-item-head"><i class="calendar-dot" style="background:${BODY_PART_COLORS[p]}"></i>${p}</div><strong>${v?Math.round(v).toLocaleString()+' kg':'—'}</strong><div class="bodypart-volume-bar"><span style="width:${pct}%;background:${BODY_PART_COLORS[p]}"></span></div></div>`;
   }).join('');
+}
+
+
+function openTrainingForDate(dateStr){
+  if(!state.activeClientId){alert('先にクライアントを選択してください。');return;}
+  editingTrainingId=null;
+  const form=document.getElementById('trainingForm');
+  form.reset();
+  resetTrainingSetRows();
+  document.getElementById('trainingDialogTitle').textContent='トレーニングを追加';
+  refreshExercises();
+  form.elements.date.value=dateStr||today();
+  document.getElementById('trainingDialog').showModal();
 }
 
 function render(){
@@ -1004,7 +1019,14 @@ document.getElementById('trainingCalendar')?.addEventListener('click',e=>{
   selectedTrainingDate=btn.dataset.calendarDate;
   const d=new Date(`${selectedTrainingDate}T00:00:00`);
   calendarCursor=new Date(d.getFullYear(),d.getMonth(),1);
+  const dayRows=state.training.filter(r=>r.clientId===state.activeClientId&&r.date===selectedTrainingDate);
   render();
+  if(dayRows.length===0) openTrainingForDate(selectedTrainingDate);
+});
+
+
+document.getElementById('calendarAddTrainingBtn')?.addEventListener('click',()=>{
+  if(selectedTrainingDate)openTrainingForDate(selectedTrainingDate);
 });
 
 render();

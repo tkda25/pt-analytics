@@ -430,3 +430,18 @@ body:not(.clients-view) #clientBtn{display:none!important}
   .calendar-day{min-height:61px;padding:5px 2px;gap:5px}
   .bodypart-volume-grid{grid-template-columns:1fr 1fr}
 }
+
+/* v21 */
+#oneRmChart, #volumeChart { display:none!important; }
+#trainingCalendarSection{order:-10}
+#trainingQuickAdd{display:none!important}
+.calendar-add-btn{
+  width:34px;height:34px;border:0;border-radius:50%;font-size:24px;line-height:1;
+  display:inline-flex;align-items:center;justify-content:center;background:#10233d;color:#fff;
+}
+.selected-day-actions{display:flex;align-items:center;gap:8px}
+.training-day-session{position:relative}
+
+.card:has(#oneRmChart), .card:has(#volumeChart){display:none!important}
+
+button[data-open="training"]{display:none!important}

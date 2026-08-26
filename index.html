@@ -3,10 +3,10 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <title>PT Analytics v20</title>
-  <link rel="stylesheet" href="style.css?v=20" />
+  <title>PT Analytics v21</title>
+  <link rel="stylesheet" href="style.css?v=21" />
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-  <script src="config.js?v=20"></script>
+  <script src="config.js?v=21"></script>
 </head>
 <body>
     <section id="authGate" class="auth-gate">
@@ -67,6 +67,37 @@
           
         </div>
       </header>
+
+      <section class="training-calendar-section" id="trainingCalendarSection" data-section="training">
+        <article class="card">
+          <div class="calendar-toolbar">
+            <button type="button" id="calendarPrevBtn" class="calendar-nav-btn" aria-label="前月">‹</button>
+            <div>
+              <h3>トレーニングカレンダー</h3>
+              <strong id="calendarMonthLabel"></strong>
+            </div>
+            <button type="button" id="calendarNextBtn" class="calendar-nav-btn" aria-label="次月">›</button>
+          </div>
+          <div class="calendar-weekdays"><span>日</span><span>月</span><span>火</span><span>水</span><span>木</span><span>金</span><span>土</span></div>
+          <div id="trainingCalendar" class="training-calendar"></div>
+          <div id="bodyPartLegend" class="bodypart-legend"></div>
+        </article>
+
+        <article class="card">
+          <div class="card-head">
+  <h3 id="selectedTrainingDateTitle">日付を選択</h3>
+  <div class="selected-day-actions"><span id="selectedDayVolume"></span><button type="button" id="calendarAddTrainingBtn" class="calendar-add-btn" aria-label="トレーニングを追加" hidden>＋</button></div>
+</div>
+          <div id="selectedTrainingDayDetails" class="selected-training-day-details">
+            <div class="calendar-empty">日付をタップすると、その日のトレーニングが表示されます。</div>
+          </div>
+        </article>
+
+        <article class="card">
+          <div class="card-head"><h3>今月の部位別ボリューム</h3><span>kg</span></div>
+          <div id="bodyPartVolumeGrid" class="bodypart-volume-grid"></div>
+        </article>
+      </section>
 
       <section class="profile-card card legacy-client-profile" id="clientsSection">
         <div>
@@ -171,34 +202,6 @@
           <article class="chart-card inner-card"><div class="card-head"><h3>推定1RMの推移</h3><span>kg</span></div><svg id="exerciseOrmChart" viewBox="0 0 700 260" preserveAspectRatio="none"></svg></article>
           <article class="chart-card inner-card"><div class="card-head"><h3>1日ごとのボリューム</h3><span>kg</span></div><svg id="exerciseVolumeChart" viewBox="0 0 700 260" preserveAspectRatio="none"></svg></article>
         </div>
-      </section>
-
-      <section class="training-calendar-section" id="trainingCalendarSection" data-section="training">
-        <article class="card">
-          <div class="calendar-toolbar">
-            <button type="button" id="calendarPrevBtn" class="calendar-nav-btn" aria-label="前月">‹</button>
-            <div>
-              <h3>トレーニングカレンダー</h3>
-              <strong id="calendarMonthLabel"></strong>
-            </div>
-            <button type="button" id="calendarNextBtn" class="calendar-nav-btn" aria-label="次月">›</button>
-          </div>
-          <div class="calendar-weekdays"><span>日</span><span>月</span><span>火</span><span>水</span><span>木</span><span>金</span><span>土</span></div>
-          <div id="trainingCalendar" class="training-calendar"></div>
-          <div id="bodyPartLegend" class="bodypart-legend"></div>
-        </article>
-
-        <article class="card">
-          <div class="card-head"><h3 id="selectedTrainingDateTitle">日付を選択</h3><span id="selectedDayVolume"></span></div>
-          <div id="selectedTrainingDayDetails" class="selected-training-day-details">
-            <div class="calendar-empty">日付をタップすると、その日のトレーニングが表示されます。</div>
-          </div>
-        </article>
-
-        <article class="card">
-          <div class="card-head"><h3>今月の部位別ボリューム</h3><span>kg</span></div>
-          <div id="bodyPartVolumeGrid" class="bodypart-volume-grid"></div>
-        </article>
       </section>
 
       <section class="grid one" id="trainingSection" data-section="training">
@@ -310,6 +313,6 @@
     </form>
   </dialog>
 
-  <script src="app.js?v=20"></script>
+  <script src="app.js?v=21"></script>
 </body>
 </html>
