@@ -43,6 +43,28 @@ function cloudTrainingRow(r){
     note:r.note||null
   };
 }
+function cloudBodyRow(r){
+  return{id:r.id,client_id:r.clientId,record_date:r.date,body_weight:r.bodyWeight||null,body_fat:r.bodyFat||null,water:r.water||null,sleep:r.sleep||null,steps:r.steps||null,condition:r.condition||null,note:r.note||null};
+}
+function localFromCloud(c,t,b){
+  return{activeClientId:c[0]?.id||'',clients:c.map(x=>({id:x.id,name:x.name,age:x.age||'',sex:x.sex||'',height:x.height||'',goal:x.goal||''})),training:t.map(x=>({id:x.id,clientId:x.client_id,date:x.training_date,exercise:x.exercise,weight:+x.weight,reps:x.reps,sets:x.sets,rpe:null,note:x.note||''})),body:b.map(x=>({id:x.id,clientId:x.client_id,date:x.record_date,bodyWeight:x.body_weight==null?null:+x.body_weight,bodyFat:x.body_fat==null?null:+x.body_fat,water:x.water==null?null:+x.water,sleep:x.sleep==null?null:+x.sleep,steps:x.steps,condition:x.condition,note:x.note||''})),exercises:state.exercises||clone(defaultState.exercises)};
+}
+async function fetchCloudState(){
+  if(!sb||!currentUser)return false;
+  setSyncStatus('読み込み中');
+  const [c,t,b]=await Promise.all([
+    sb.from('clients').select('*').order('created_at'),
+    sb.from('training_records').select('*').order('training_date'),
+    sb.from('body_records').select('*').order('record_date')
+  ]);
+  if(c.error||t.error||b.error){console.error(c.error||t.error||b.error);setSyncStatus('読み込みエラー');return false;}
+  if(c.data.length===0){
+    suppressCloudSave=true;state={activeClientId:'',clients:[],training:[],body:[],exercises:state.exercises||clone(defaultState.exercises)};
+    const raw=JSON.stringify(state);localStorage.setItem(KEY,raw);localStorage.setItem('ptAnalyticsV2',raw);suppressCloudSave=false;setSyncStatus('同期済み');render();return 'empty';
+  }
+  suppressCloudSave=true;state=localFromCloud(c.data,t.data,b.data);const raw=JSON.stringify(state);localStorage.setItem(KEY,raw);localStorage.setItem('ptAnalyticsV2',raw);suppressCloudSave=false;setSyncStatus('同期済み');render();return true;
+}
+
 async function pushFullStateToCloud(){
   if(!sb||!currentUser||cloudBusy)return;
   cloudBusy=true;setSyncStatus('保存中');
