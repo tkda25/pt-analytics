@@ -466,7 +466,7 @@ document.getElementById('periodTabs').onclick=e=>{
   document.querySelectorAll('#periodTabs button').forEach(b=>b.classList.toggle('active',b===e.target));
   render();
 };
-if(exerciseFilter)exerciseFilter.onchange=render;
+if(exerciseFilter) exerciseFilter.onchange=render;
 progressExerciseSelect.onchange=render;
 progressRangeSelect.onchange=render;
 
@@ -851,8 +851,8 @@ function render(){
   ];
   document.getElementById('comparisonStrip').innerHTML='<strong>前期間比</strong>'+comp.map(([l,v,cl])=>`<div class="compare-item"><span class="compare-label">${l}</span><span class="compare-value ${cl}">${v}</span></div>`).join('');
 
-  const trainingTable=document.getElementById('trainingTable');
-  if(trainingTable)trainingTable.innerHTML=tr.slice().reverse().slice(0,20).map(x=>{
+  const trainingTableEl=document.getElementById('trainingTable');
+  if(trainingTableEl) trainingTableEl.innerHTML=tr.slice().reverse().slice(0,20).map(x=>{
     const sets=parseTrainingSets(x);
     const setText=sets.map((s,i)=>`${i+1}. ${s.weight}kg × ${s.reps}回`).join('<br>');
     const top=sets[0]||{weight:x.weight,reps:x.reps};
