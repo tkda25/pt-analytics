@@ -1043,8 +1043,6 @@ function render(){
   drawLine('waterChart',bd.filter(x=>x.water).map(x=>({date:x.date,value:x.water})));
   drawLine('sleepChart',bd.filter(x=>x.sleep).map(x=>({date:x.date,value:x.sleep})));
   drawLine('stepsChart',bd.filter(x=>x.steps).map(x=>({date:x.date,value:x.steps})));
-  drawLine('ormChart',tr.map(x=>({date:x.date,value:recordBest1RM(x)})));
-  drawBars('volumeChart',groupVolumeByDate(tr));
   cleanDashboardVolumeUI();
     removeEstimated1RmBestUi();
   applyView(currentView);
