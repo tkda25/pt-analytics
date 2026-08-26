@@ -1100,11 +1100,6 @@ function drawLine(id,data){
   s.appendChild(svgEl('path',{d,class:'line'}));
   data.forEach((v,i)=>s.appendChild(svgEl('circle',{cx:sc.x(i),cy:sc.y(v.value),r:4,class:'point'})));
 
-  if(unit){
-    const xl=svgEl('text',{x:sc.W/2,y:sc.H-1,class:'axis-title','text-anchor':'middle'});
-    xl.textContent='日付';
-    s.appendChild(xl);
-  }
 }
 function drawBars(id,data){
   const s=clearSvg(id);if(!data.length)return emptyChart(s);const sc=scale(data);axes(s,sc,data);
