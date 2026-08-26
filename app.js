@@ -721,6 +721,19 @@ function openTrainingForDate(dateStr){
   document.getElementById('trainingDialog').showModal();
 }
 
+
+function removeVolumeDashboardArtifacts(){
+  document.querySelectorAll('#kpiGrid > *, #progressSummaryGrid > *').forEach(el=>{
+    if(/総ボリューム|期間ボリューム/.test(el.textContent||''))el.remove();
+  });
+  const strip=document.getElementById('comparisonStrip');
+  if(strip){
+    strip.querySelectorAll('*').forEach(el=>{
+      if(/期間ボリューム|総ボリューム/.test(el.textContent||''))el.remove();
+    });
+  }
+}
+
 function render(){
   const c=active();
   fillClientSelects();refreshExercises();
@@ -1017,9 +1030,8 @@ document.getElementById('trainingCalendar')?.addEventListener('click',e=>{
   selectedTrainingDate=btn.dataset.calendarDate;
   const d=new Date(`${selectedTrainingDate}T00:00:00`);
   calendarCursor=new Date(d.getFullYear(),d.getMonth(),1);
-  const dayRows=state.training.filter(r=>r.clientId===state.activeClientId&&r.date===selectedTrainingDate);
   render();
-  if(dayRows.length===0) openTrainingForDate(selectedTrainingDate);
+  openTrainingForDate(selectedTrainingDate);
 });
 
 
