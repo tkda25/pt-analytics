@@ -238,7 +238,6 @@ document.getElementById('bodyForm').addEventListener('submit',e=>{
 const clientDialog=document.getElementById('clientDialog');
 const clientForm=document.getElementById('clientForm');
 const clientSelect=document.getElementById('clientSelect');
-const quickClientSelect=document.getElementById('quickClientSelect');
 const clientSearch=document.getElementById('clientSearch');
 const clientSearchResults=document.getElementById('clientSearchResults');
 const clientList=document.getElementById('clientList');
@@ -261,7 +260,6 @@ clientSelect.onchange=()=>{
   loadClientForm(active());
   render();
 };
-quickClientSelect.onchange=()=>{state.activeClientId=quickClientSelect.value||'';save();render()};
 document.getElementById('newClientBtn').onclick=()=>{clientForm.reset();clientSelect.value='';clientForm.elements.name.focus()};
 clientForm.addEventListener('submit',e=>{
   const f=new FormData(clientForm),selected=clientSelect.value;
@@ -282,12 +280,7 @@ document.getElementById('deleteClientBtn').onclick=()=>{
 function fillClientSelects(){
   const opts=state.clients.map(c=>`<option value="${c.id}">${esc(c.name)}</option>`).join('');
   clientSelect.innerHTML='<option value="">＋ 新規クライアント</option>'+opts;
-  quickClientSelect.innerHTML=state.clients.length?opts:'<option value="">未登録</option>';
   clientSelect.value=state.activeClientId||'';
-  quickClientSelect.value=state.activeClientId||'';
-  if(document.activeElement!==clientSearch){
-    clientSearch.value=active()?.name||'';
-  }
 }
 function loadClientForm(c){
   if(!c)return;
@@ -367,43 +360,67 @@ window.editTraining=editTraining;window.editBody=editBody;window.removeTraining=
 
 function renderClientSearchResults(query){
   const q=(query||'').trim().toLowerCase();
+
   if(!q){
-    clientSearchResults.innerHTML='<div class="search-help">名前を入力すると候補が表示されます</div>';
-    clientSearchResults.hidden=true;
+    if(currentView==='clients'){
+      clientSearchResults.innerHTML=state.clients.length
+        ? '<div class="search-help">名前を入力するとクライアントが表示されます</div>'
+        : '<div class="search-empty">まだクライアントが登録されていません</div>';
+      clientSearchResults.hidden=false;
+    }else{
+      clientSearchResults.innerHTML='';
+      clientSearchResults.hidden=true;
+    }
     return;
   }
-  const matches=state.clients.filter(c=>String(c.name||'').toLowerCase().includes(q)).slice(0,20);
+
+  const matches=state.clients
+    .filter(c=>String(c.name||'').toLowerCase().includes(q))
+    .slice(0,30);
+
   clientSearchResults.innerHTML=matches.length
-    ? matches.map(c=>`<button type="button" class="search-result" data-client-id="${c.id}"><strong>${esc(c.name)}</strong><small>${esc(c.goal||'目標未設定')}</small></button>`).join('')
+    ? matches.map(c=>`<button type="button" class="search-result ${c.id===state.activeClientId?'active':''}" data-client-id="${c.id}">
+        <strong>${esc(c.name)}</strong>
+        <small>${esc(c.goal||'目標未設定')} / ${c.age||'—'}歳 / ${esc(c.sex||'—')} / ${c.height||'—'}cm</small>
+      </button>`).join('')
     : '<div class="search-empty">該当するクライアントがいません</div>';
   clientSearchResults.hidden=false;
 }
-clientSearch.addEventListener('focus',()=>{if(clientSearch.value.trim())renderClientSearchResults(clientSearch.value)});
+
+clientSearch.addEventListener('focus',()=>{
+  if(currentView==='clients' || clientSearch.value.trim()){
+    renderClientSearchResults(clientSearch.value);
+  }
+});
 clientSearch.addEventListener('input',()=>renderClientSearchResults(clientSearch.value));
+
 clientSearchResults.addEventListener('click',e=>{
   const btn=e.target.closest('[data-client-id]');
   if(!btn)return;
+
   state.activeClientId=btn.dataset.clientId;
   save();
-  clientSearchResults.hidden=true;
   render();
+
+  if(currentView==='clients'){
+    // Stay on the Client List page and keep the search results visible.
+    renderClientSearchResults(clientSearch.value);
+  }else{
+    clientSearch.value='';
+    clientSearchResults.hidden=true;
+  }
 });
+
 document.addEventListener('click',e=>{
-  if(!e.target.closest('.client-search-wrap')) clientSearchResults.hidden=true;
+  if(currentView!=='clients' && !e.target.closest('.client-search-wrap')){
+    clientSearchResults.hidden=true;
+  }
 });
 
 
 function renderClientList(){
-  const q=(clientListSearch?.value||'').trim().toLowerCase();
-  const rows=state.clients.filter(c=>!q||String(c.name||'').toLowerCase().includes(q));
-  if(clientCountLabel) clientCountLabel.textContent=`${state.clients.length}名`;
-  if(clientList) clientList.innerHTML=rows.length?rows.map(c=>`<button type="button" class="client-list-item ${c.id===state.activeClientId?'active':''}" data-client-card="${c.id}"><strong>${esc(c.name)}</strong><span>${esc(c.goal||'目標未設定')}</span><span>${c.age||'—'}歳 / ${esc(c.sex||'—')} / ${c.height||'—'}cm</span></button>`).join(''):'<div class="search-empty">該当するクライアントがいません</div>';
+  if(clientCountLabel)clientCountLabel.textContent=`${state.clients.length}名`;
 }
-clientList?.addEventListener('click',e=>{
-  const btn=e.target.closest('[data-client-card]');if(!btn)return;
-  state.activeClientId=btn.dataset.clientCard;save();render();applyView('clients');
-});
-clientListSearch?.addEventListener('input',renderClientList);
 document.getElementById('addClientShortcut')?.addEventListener('click',()=>{
   clientForm.reset();clientSelect.value='';clientDialog.showModal();setTimeout(()=>clientForm.elements.name.focus(),50);
 });
@@ -694,12 +711,24 @@ function setActiveNav(view){
 }
 function applyView(view){
   currentView=viewTitles[view]?view:'dashboard';
+
   document.querySelectorAll('[data-section]').forEach(el=>{
     el.classList.toggle('view-hidden',el.dataset.section!==currentView);
   });
+
+  document.body.classList.toggle('clients-view',currentView==='clients');
+
   const title=document.getElementById('viewTitle');
   if(title)title.textContent=viewTitles[currentView];
+
   setActiveNav(currentView);
+
+  if(currentView==='clients'){
+    renderClientSearchResults(clientSearch.value);
+  }else{
+    clientSearchResults.hidden=true;
+  }
+
   window.scrollTo({top:0,behavior:'instant'});
 }
 document.querySelectorAll('.nav-item[data-view]').forEach(btn=>{

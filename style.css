@@ -217,3 +217,77 @@ body.no-client #reportSection{opacity:.55}
 .sidebar-tools-label{padding:0 12px 4px;color:#8fa3ba;font-size:11px;font-weight:700}
 .sidebar-tool-btn{width:100%;border:0;border-radius:10px;padding:12px 14px;background:transparent;color:#d6e0ec;text-align:left;font-size:15px}
 .sidebar-tool-btn.danger{color:#ff9c9c}
+
+/* v15: cleaner client switching */
+.legacy-client-profile,
+.legacy-client-list{
+  display:none!important;
+}
+
+/* No duplicated current-client select: search is the single switching UI. */
+.client-search-wrap{
+  width:min(100%,620px);
+}
+.client-search{
+  width:100%;
+}
+.top-actions{
+  align-items:stretch;
+}
+
+/* Client List page = search + management only, then search results. */
+body.clients-view .client-heading{
+  display:none!important;
+}
+body.clients-view .topbar{
+  grid-template-columns:1fr;
+  align-items:start;
+}
+body.clients-view .top-actions{
+  width:100%;
+}
+body.clients-view .client-search-wrap{
+  width:100%;
+}
+body.clients-view .client-search-results{
+  position:static!important;
+  inset:auto!important;
+  width:100%!important;
+  max-height:none!important;
+  margin-top:10px;
+  box-shadow:none;
+  border:1px solid var(--line);
+  border-radius:14px;
+  overflow:hidden;
+}
+body.clients-view .client-search-results[hidden]{
+  display:none!important;
+}
+body.clients-view .search-result{
+  padding:16px;
+}
+body.clients-view .search-result strong{
+  font-size:17px;
+}
+body.clients-view .search-result small{
+  font-size:13px;
+}
+body.clients-view .search-result.active{
+  background:#eef6ff;
+  outline:2px solid #2487ff;
+  outline-offset:-2px;
+}
+body.clients-view .search-help,
+body.clients-view .search-empty{
+  padding:18px;
+}
+
+/* Keep the search and Client Management button clean on mobile. */
+@media(max-width:680px){
+  body.clients-view .top-actions{
+    grid-template-columns:1fr!important;
+  }
+  body.clients-view #clientBtn{
+    width:100%;
+  }
+}
