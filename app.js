@@ -162,11 +162,9 @@ function clientRows(arr){return arr.filter(x=>x.clientId===state.activeClientId)
 function e1rm(w,reps){
   const weight=Number(w), r=Number(reps);
   if(!Number.isFinite(weight)||weight<=0||!Number.isFinite(r)||r<=0)return 0;
-  // Brzycki formula is intended for low-to-moderate rep sets; cap at 10 reps here.
   const repsUsed=Math.min(r,10);
   return weight*36/(37-repsUsed);
 }
-
 function latest(a,k){const x=a.filter(v=>v[k]!=null&&v[k]!==0);return x.length?x[x.length-1][k]:null}
 function avg(arr,k){const a=arr.map(x=>Number(x[k])).filter(v=>Number.isFinite(v)&&v!==0);return a.length?a.reduce((s,v)=>s+v,0)/a.length:null}
 function withinDays(x,days=periodDays){
@@ -194,7 +192,7 @@ document.querySelectorAll('[data-open]').forEach(b=>b.onclick=()=>{
     document.getElementById('trainingDialogTitle').textContent='トレーニングを記録';
     document.getElementById('trainingForm').reset();
     document.getElementById('trainingForm').elements.sets.value=3;
-      }
+  }
   if(type==='body'){
     editingBodyId=null;
     document.getElementById('bodyDialogTitle').textContent='身体・生活データを記録';
@@ -295,11 +293,12 @@ function loadClientForm(c){
   if(!c)return;
   ['name','age','sex','height','goal'].forEach(k=>clientForm.elements[k].value=c[k]??'');
 }
-document.getElementById('menuResetBtn')?.addEventListener('click',()=>{closeMobileMenu();
+document.getElementById('menuResetBtn')?.addEventListener('click',()=>{
+  closeMobileMenu();
   if(confirm('この端末に保存されたPT Analyticsの全データを初期化しますか？')){
     state=clone(defaultState);save();render();
   }
-};
+});
 
 const exerciseFilter=document.getElementById('exerciseFilter');
 document.getElementById('periodTabs').onclick=e=>{
@@ -343,7 +342,7 @@ function editTraining(id){
   form.elements.weight.value=x.weight??'';
   form.elements.reps.value=x.reps??'';
   form.elements.sets.value=x.sets??1;
-    form.elements.note.value=x.note||'';
+  form.elements.note.value=x.note||'';
   document.getElementById('trainingDialog').showModal();
 }
 function editBody(id){
@@ -424,7 +423,7 @@ sidebarBackdrop?.addEventListener('click',closeMobileMenu);
 
 // Backup
 const backupDialog=document.getElementById('backupDialog');
-document.getElementById('menuBackupBtn')?.addEventListener('click',()=>{closeMobileMenu();backupDialog.showModal()});
+document.getElementById('menuBackupBtn')?.addEventListener('click',()=>{closeMobileMenu();backupDialog.showModal();});
 document.getElementById('exportBackupBtn').onclick=()=>{
   download(`pt-analytics-backup-${today()}.json`,JSON.stringify(state,null,2),'application/json');
 };
@@ -445,8 +444,8 @@ document.getElementById('exportCsvBtn').onclick=()=>{
   const c=active(),tr=clientRows(state.training),bd=clientRows(state.body);
   const lines=[
     ['クライアント',c.name],['目標',c.goal||''],[],
-    ['TRAINING'],['日付','種目','重量kg','回数','セット','推定1RMkg'],
-    ...tr.map(x=>[x.date,x.exercise,x.weight,x.reps,x.sets,n(e1rm(x.weight,x.reps))]),
+    ['TRAINING'],['日付','種目','重量kg','回数','セット','RPE','推定1RMkg'],
+    ...tr.map(x=>[x.date,x.exercise,x.weight,x.reps,x.sets,x.rpe,n(e1rm(x.weight,x.reps))]),
     [],['BODY'],['日付','体重kg','体脂肪%','水分L','睡眠h','歩数','体調','メモ'],
     ...bd.map(x=>[x.date,x.bodyWeight||'',x.bodyFat||'',x.water||'',x.sleep||'',x.steps||'',x.condition||'',x.note||''])
   ];
@@ -726,7 +725,7 @@ document.getElementById('signupBtn')?.addEventListener('click',async()=>{
   const {data,error}=await sb.auth.signUp({email,password});
   if(error)setAuthMessage(error.message,'error'); else if(data.session)setAuthMessage('登録しました。','success'); else setAuthMessage('確認メールを確認してください。','success');
 });
-document.getElementById('menuAccountBtn')?.addEventListener('click',()=>{closeMobileMenu();document.getElementById('accountDialog')?.showModal()});
+document.getElementById('menuAccountBtn')?.addEventListener('click',()=>{closeMobileMenu();document.getElementById('accountDialog')?.showModal();});
 document.getElementById('logoutBtn')?.addEventListener('click',async()=>{await sb?.auth.signOut();document.getElementById('accountDialog')?.close()});
 bootCloud();
 
