@@ -388,3 +388,48 @@ body:not(.clients-view) #clientBtn{display:none!important}
     gap:6px;
   }
 }
+
+/* v19 training calendar + body parts */
+.training-calendar-section{display:grid;gap:16px}
+.training-calendar-card{overflow:hidden}
+.calendar-toolbar{display:grid;grid-template-columns:46px 1fr 46px;align-items:center;gap:10px;margin-bottom:14px;text-align:center}
+.calendar-toolbar h3{margin:0;font-size:18px}
+.calendar-toolbar strong{display:block;margin-top:2px;font-size:14px;color:var(--muted)}
+.calendar-nav-btn{width:42px;height:42px;border:1px solid var(--line);border-radius:11px;background:#fff;font-size:28px;line-height:1;color:var(--text)}
+.calendar-weekdays,.training-calendar{display:grid;grid-template-columns:repeat(7,minmax(0,1fr))}
+.calendar-weekdays{margin-bottom:6px;color:var(--muted);font-size:11px;text-align:center}
+.calendar-day{position:relative;min-height:72px;border:1px solid #edf1f5;background:#fff;padding:7px 5px;display:flex;flex-direction:column;align-items:center;gap:8px}
+.calendar-day:nth-child(7n+1){border-radius:8px 0 0 8px}
+.calendar-day:nth-child(7n){border-radius:0 8px 8px 0}
+.calendar-day.outside{background:#f7f9fc;color:#b5bdc8}
+.calendar-day.has-training{cursor:pointer}
+.calendar-day.selected{outline:2px solid #2284ff;outline-offset:-2px;background:#f2f7ff}
+.calendar-day.today .calendar-day-number{background:#12243c;color:#fff}
+.calendar-day-number{display:flex;width:25px;height:25px;align-items:center;justify-content:center;border-radius:50%;font-size:12px;font-weight:700}
+.calendar-dots{display:flex;flex-wrap:wrap;gap:3px;justify-content:center;min-height:7px}
+.calendar-dot{width:6px;height:6px;border-radius:50%}
+.bodypart-legend{display:flex;flex-wrap:wrap;gap:8px 12px;margin-top:14px}
+.bodypart-legend-item{display:flex;align-items:center;gap:5px;font-size:11px;color:var(--muted)}
+.bodypart-legend-item i,.bodypart-badge i{display:inline-block;width:8px;height:8px;border-radius:50%}
+.selected-training-day-details{display:grid;gap:12px}
+.training-day-session{border:1px solid var(--line);border-radius:13px;padding:14px;background:#fff}
+.training-day-session-head{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:10px}
+.training-day-session-title{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.training-day-session-title strong{font-size:16px}
+.bodypart-badge{display:inline-flex;align-items:center;gap:5px;border-radius:999px;padding:5px 8px;background:#f4f6f9;font-size:11px;font-weight:700}
+.session-set-list{display:grid;gap:6px}
+.session-set-row{display:grid;grid-template-columns:38px 1fr 1fr;gap:8px;padding:7px 9px;background:#f7f9fc;border-radius:9px;font-size:13px}
+.session-set-row span:first-child{font-weight:800;color:var(--muted)}
+.session-volume{font-size:12px;color:var(--muted);white-space:nowrap}
+.calendar-empty{padding:18px;text-align:center;color:var(--muted);background:#f8fafc;border-radius:12px}
+.bodypart-volume-grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px}
+.bodypart-volume-item{border:1px solid var(--line);border-radius:12px;padding:12px}
+.bodypart-volume-item-head{display:flex;align-items:center;gap:7px;margin-bottom:5px;font-size:12px;color:var(--muted)}
+.bodypart-volume-item strong{display:block;font-size:18px}
+.bodypart-volume-bar{height:5px;background:#edf1f5;border-radius:999px;margin-top:8px;overflow:hidden}
+.bodypart-volume-bar span{display:block;height:100%;border-radius:999px}
+@media(max-width:680px){
+  .calendar-day{min-height:62px;padding:5px 3px;gap:5px}
+  .calendar-day-number{width:23px;height:23px}
+  .bodypart-volume-grid{grid-template-columns:1fr 1fr}
+}

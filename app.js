@@ -114,6 +114,11 @@ let currentView='dashboard';
 let editingTrainingId=null;
 let editingBodyId=null;
 
+let calendarCursor=new Date();
+calendarCursor=new Date(calendarCursor.getFullYear(),calendarCursor.getMonth(),1);
+let selectedTrainingDate='';
+
+
 function clone(x){return JSON.parse(JSON.stringify(x))}
 function normalizeState(x){
   const base=clone(defaultState);
@@ -163,23 +168,53 @@ function e1rm(w,reps){
 
 const SETS_NOTE_PREFIX='__PTSETS__:';
 
-function parseTrainingSets(record){
+const BODY_PARTS=['胸','背中','肩','二頭','三頭','脚','腹筋','有酸素'];
+const BODY_PART_COLORS={
+  '胸':'#ef4444',
+  '背中':'#3b82f6',
+  '肩':'#f59e0b',
+  '二頭':'#8b5cf6',
+  '三頭':'#ec4899',
+  '脚':'#22c55e',
+  '腹筋':'#64748b',
+  '有酸素':'#06b6d4'
+};
+
+function parseTrainingMeta(record){
   const raw=String(record?.note||'');
   if(raw.startsWith(SETS_NOTE_PREFIX)){
     const nl=raw.indexOf('\n');
     const payload=nl>=0?raw.slice(SETS_NOTE_PREFIX.length,nl):raw.slice(SETS_NOTE_PREFIX.length);
     try{
       const parsed=JSON.parse(payload);
-      if(Array.isArray(parsed)&&parsed.length){
-        return parsed
-          .map(s=>({weight:Number(s.weight),reps:Number(s.reps)}))
-          .filter(s=>Number.isFinite(s.weight)&&s.weight>0&&Number.isFinite(s.reps)&&s.reps>0);
+      if(Array.isArray(parsed)){
+        return {sets:parsed,bodyPart:''};
+      }
+      if(parsed&&typeof parsed==='object'){
+        return {
+          sets:Array.isArray(parsed.sets)?parsed.sets:[],
+          bodyPart:BODY_PARTS.includes(parsed.bodyPart)?parsed.bodyPart:''
+        };
       }
     }catch(e){}
+  }
+  return {sets:[],bodyPart:''};
+}
+
+function parseTrainingSets(record){
+  const meta=parseTrainingMeta(record);
+  if(meta.sets.length){
+    return meta.sets
+      .map(s=>({weight:Number(s.weight),reps:Number(s.reps)}))
+      .filter(s=>Number.isFinite(s.weight)&&s.weight>0&&Number.isFinite(s.reps)&&s.reps>0);
   }
   const count=Math.max(1,Number(record?.sets)||1);
   return Array.from({length:count},()=>({weight:Number(record?.weight)||0,reps:Number(record?.reps)||0}))
     .filter(s=>s.weight>0&&s.reps>0);
+}
+
+function trainingBodyPart(record){
+  return parseTrainingMeta(record).bodyPart||'';
 }
 
 function visibleTrainingNote(record){
@@ -189,8 +224,12 @@ function visibleTrainingNote(record){
   return nl>=0?raw.slice(nl+1):'';
 }
 
-function encodeTrainingNote(sets,note){
-  return SETS_NOTE_PREFIX+JSON.stringify(sets.map(s=>({weight:Number(s.weight),reps:Number(s.reps)})))+'\n'+String(note||'');
+function encodeTrainingNote(sets,note,bodyPart=''){
+  const meta={
+    sets:sets.map(s=>({weight:Number(s.weight),reps:Number(s.reps)})),
+    bodyPart:BODY_PARTS.includes(bodyPart)?bodyPart:''
+  };
+  return SETS_NOTE_PREFIX+JSON.stringify(meta)+'\n'+String(note||'');
 }
 
 function trainingVolume(record){
@@ -206,8 +245,24 @@ function recordBest1RM(record){
 function recordTopSet(record){
   const sets=parseTrainingSets(record);
   if(!sets.length)return {weight:Number(record?.weight)||0,reps:Number(record?.reps)||0};
-  return sets.slice().sort((a,b)=>recordBest1RM({weight:b.weight,reps:b.reps,sets:1,note:''})-recordBest1RM({weight:a.weight,reps:a.reps,sets:1,note:''}))[0];
+  return sets.slice().sort((a,b)=>e1rm(b.weight,b.reps)-e1rm(a.weight,a.reps))[0];
 }
+
+function groupVolumeByDate(rows){
+  const map={};
+  rows.forEach(x=>{map[x.date]=(map[x.date]||0)+trainingVolume(x)});
+  return Object.entries(map).sort((a,b)=>a[0].localeCompare(b[0])).map(([date,value])=>({date,value}));
+}
+
+function bodyPartVolumes(rows){
+  const totals=Object.fromEntries(BODY_PARTS.map(p=>[p,0]));
+  rows.forEach(r=>{
+    const part=trainingBodyPart(r);
+    if(part&&part in totals)totals[part]+=trainingVolume(r);
+  });
+  return totals;
+}
+
 
 function latest(a,k){const x=a.filter(v=>v[k]!=null&&v[k]!==0);return x.length?x[x.length-1][k]:null}
 function avg(arr,k){const a=arr.map(x=>Number(x[k])).filter(v=>Number.isFinite(v)&&v!==0);return a.length?a.reduce((s,v)=>s+v,0)/a.length:null}
@@ -316,7 +371,7 @@ document.getElementById('trainingForm').addEventListener('submit',e=>{
     weight:top.weight,
     reps:top.reps,
     sets:sets.length,
-    note:encodeTrainingNote(sets,f.get('note')||'')
+    note:encodeTrainingNote(sets,f.get('note')||'',f.get('bodyPart')||'')
   };
 
   if(editingTrainingId){
@@ -443,6 +498,7 @@ function editTraining(id){
   refreshExercises();
   form.elements.date.value=x.date||today();
   form.elements.exercise.value=x.exercise||'';
+  form.elements.bodyPart.value=trainingBodyPart(x)||'';
   form.elements.note.value=visibleTrainingNote(x);
   resetTrainingSetRows(parseTrainingSets(x));
   document.getElementById('trainingDialog').showModal();
@@ -612,10 +668,118 @@ function percentChange(cur,prev){
   if(cur==null||prev==null||Number(prev)===0)return null;
   return ((Number(cur)-Number(prev))/Math.abs(Number(prev)))*100;
 }
-function groupVolumeByDate(rows){
-  const map={};
-  rows.forEach(x=>{map[x.date]=(map[x.date]||0)+(Number(x.weight)||0)*(Number(x.reps)||0)*(Number(x.sets)||0)});
-  return Object.entries(map).sort((a,b)=>a[0].localeCompare(b[0])).map(([date,value])=>({date,value}));
+
+
+function ymdLocal(date){
+  const y=date.getFullYear();
+  const m=String(date.getMonth()+1).padStart(2,'0');
+  const d=String(date.getDate()).padStart(2,'0');
+  return `${y}-${m}-${d}`;
+}
+function monthRows(rows,date){
+  const y=date.getFullYear(),m=date.getMonth();
+  return rows.filter(r=>{
+    const d=new Date(`${r.date}T00:00:00`);
+    return d.getFullYear()===y&&d.getMonth()===m;
+  });
+}
+function renderBodyPartLegend(){
+  const el=document.getElementById('bodyPartLegend');if(!el)return;
+  el.innerHTML=BODY_PARTS.map(p=>`<span class="bodypart-legend-item"><i style="background:${BODY_PART_COLORS[p]}"></i>${p}</span>`).join('');
+}
+function renderTrainingCalendar(rows){
+  const calendar=document.getElementById('trainingCalendar');
+  const label=document.getElementById('calendarMonthLabel');
+  if(!calendar||!label)return;
+
+  const y=calendarCursor.getFullYear(),m=calendarCursor.getMonth();
+  label.textContent=`${y}年 ${m+1}月`;
+
+  const first=new Date(y,m,1);
+  const start=new Date(y,m,1-first.getDay());
+  const todayStr=ymdLocal(new Date());
+  const byDate={};
+  rows.forEach(r=>(byDate[r.date]||(byDate[r.date]=[])).push(r));
+
+  const cells=[];
+  for(let i=0;i<42;i++){
+    const d=new Date(start);d.setDate(start.getDate()+i);
+    const ds=ymdLocal(d);
+    const dayRows=byDate[ds]||[];
+    const parts=[...new Set(dayRows.map(trainingBodyPart).filter(Boolean))];
+    const outside=d.getMonth()!==m;
+    cells.push(`<button type="button" class="calendar-day ${outside?'outside':''} ${dayRows.length?'has-training':''} ${ds===selectedTrainingDate?'selected':''} ${ds===todayStr?'today':''}" data-calendar-date="${ds}">
+      <span class="calendar-day-number">${d.getDate()}</span>
+      <span class="calendar-dots">${parts.map(p=>`<i class="calendar-dot" title="${p}" style="background:${BODY_PART_COLORS[p]}"></i>`).join('')}</span>
+    </button>`);
+  }
+  calendar.innerHTML=cells.join('');
+  renderBodyPartLegend();
+}
+
+function renderSelectedTrainingDay(rows){
+  const title=document.getElementById('selectedTrainingDateTitle');
+  const details=document.getElementById('selectedTrainingDayDetails');
+  const volLabel=document.getElementById('selectedDayVolume');
+  if(!title||!details||!volLabel)return;
+
+  if(!selectedTrainingDate){
+    title.textContent='日付を選択';
+    volLabel.textContent='';
+    details.innerHTML='<div class="calendar-empty">カレンダーの日付をタップすると、その日のトレーニングが表示されます。</div>';
+    return;
+  }
+
+  const d=new Date(`${selectedTrainingDate}T00:00:00`);
+  title.textContent=`${d.getMonth()+1}月${d.getDate()}日`;
+  const dayRows=rows.filter(r=>r.date===selectedTrainingDate);
+  const total=dayRows.reduce((s,r)=>s+trainingVolume(r),0);
+  volLabel.textContent=dayRows.length?`総ボリューム ${Math.round(total).toLocaleString()} kg`:'記録なし';
+
+  if(!dayRows.length){
+    details.innerHTML='<div class="calendar-empty">この日のトレーニング記録はありません。</div>';
+    return;
+  }
+
+  details.innerHTML=dayRows.map(r=>{
+    const sets=parseTrainingSets(r);
+    const part=trainingBodyPart(r)||'未設定';
+    const color=BODY_PART_COLORS[part]||'#94a3b8';
+    return `<div class="training-day-session">
+      <div class="training-day-session-head">
+        <div class="training-day-session-title">
+          <span class="bodypart-badge"><i style="background:${color}"></i>${esc(part)}</span>
+          <strong>${esc(r.exercise)}</strong>
+        </div>
+        <span class="session-volume">${Math.round(trainingVolume(r)).toLocaleString()} kg</span>
+      </div>
+      <div class="session-set-list">
+        ${sets.map((s,i)=>`<div class="session-set-row"><span>${i+1}</span><span>${s.weight} kg</span><span>${s.reps} 回</span></div>`).join('')}
+      </div>
+    </div>`;
+  }).join('');
+}
+
+function renderBodyPartVolume(rows){
+  const grid=document.getElementById('bodyPartVolumeGrid');if(!grid)return;
+  const month=monthRows(rows,calendarCursor);
+  const totals=bodyPartVolumes(month);
+  const max=Math.max(1,...Object.values(totals));
+  grid.innerHTML=BODY_PARTS.map(p=>{
+    const v=totals[p]||0;
+    const pct=Math.max(0,Math.min(100,(v/max)*100));
+    return `<div class="bodypart-volume-item">
+      <div class="bodypart-volume-item-head"><i class="calendar-dot" style="background:${BODY_PART_COLORS[p]}"></i>${p}</div>
+      <strong>${v?Math.round(v).toLocaleString():'—'}${v?' kg':''}</strong>
+      <div class="bodypart-volume-bar"><span style="width:${pct}%;background:${BODY_PART_COLORS[p]}"></span></div>
+    </div>`;
+  }).join('');
+}
+
+function renderTrainingCalendarArea(rows){
+  renderTrainingCalendar(rows);
+  renderSelectedTrainingDay(rows);
+  renderBodyPartVolume(rows);
 }
 
 function render(){
@@ -631,10 +795,10 @@ function render(){
     const ns=document.getElementById('noClientState');if(ns)ns.hidden=false;
 
     document.getElementById('kpiGrid').innerHTML=[
-      ['最新体重','—'],['水分量','—'],['睡眠','—'],['推定1RM BEST','—'],['総ボリューム','—']
+      ['最新体重','—'],['水分量','—'],['睡眠','—'],['推定1RM BEST','—'],['最新日の総ボリューム','—']
     ].map(x=>`<article class="card kpi"><div class="label">${x[0]}</div><div class="value">${x[1]}</div><div class="change">クライアント未登録</div></article>`).join('');
 
-    document.getElementById('trainingTable').innerHTML='<tr><td colspan="6">クライアントを登録してください</td></tr>';
+    const trainingTableEl=document.getElementById('trainingTable');if(trainingTableEl)trainingTableEl.innerHTML='<tr><td colspan="6">クライアントを登録してください</td></tr>';
     const bt=document.getElementById('bodyTable');if(bt)bt.innerHTML='<tr><td colspan="8">クライアントを登録してください</td></tr>';
     const cl=document.getElementById('clientList');if(cl)cl.innerHTML='<div class="search-empty">まだクライアントが登録されていません</div>';
     if(clientCountLabel)clientCountLabel.textContent='0名';
@@ -663,13 +827,14 @@ function render(){
 
   const lastW=latest(bdAll,'bodyWeight'),lastWater=latest(bdAll,'water'),lastSleep=latest(bdAll,'sleep');
   const best=trAll.length?Math.max(...trAll.map(x=>recordBest1RM(x))):null;
-  const vol=trAll.reduce((s,x)=>s+trainingVolume(x),0);
+  const latestTrainingDate=trAll.length?[...trAll].sort((a,b)=>a.date.localeCompare(b.date)).at(-1).date:'';
+  const dailyVol=latestTrainingDate?trAll.filter(x=>x.date===latestTrainingDate).reduce((s,x)=>s+trainingVolume(x),0):0;
   const kpis=[
     ['最新体重',lastW==null?'—':n(lastW)+' kg'],
     ['水分量',lastWater==null?'—':n(lastWater)+' L'],
     ['睡眠',lastSleep==null?'—':n(lastSleep)+' h'],
     ['推定1RM BEST',best==null?'—':n(best)+' kg'],
-    ['総ボリューム',vol?Math.round(vol).toLocaleString()+' kg':'—']
+    ['最新日の総ボリューム',dailyVol?Math.round(dailyVol).toLocaleString()+' kg':'—']
   ];
   document.getElementById('kpiGrid').innerHTML=kpis.map(x=>`<article class="card kpi"><div class="label">${x[0]}</div><div class="value">${x[1]}</div></article>`).join('');
 
@@ -716,6 +881,7 @@ function render(){
 
   renderClientList();
   const histName=document.getElementById('trainingHistoryClientName');if(histName)histName.textContent=c.name;
+  renderTrainingCalendarArea(trAll);
 
   const progressExercise=progressExerciseSelect?.value || trAll[0]?.exercise || state.exercises[0];
   if(progressExerciseSelect && progressExercise && !progressExerciseSelect.value)progressExerciseSelect.value=progressExercise;
@@ -899,5 +1065,27 @@ document.getElementById('migrateLocalBtn')?.addEventListener('click',async()=>{
   await fetchCloudState();
   alert('クラウドへの移行が完了しました。');
 } );
+
+
+document.getElementById('calendarPrevBtn')?.addEventListener('click',()=>{
+  calendarCursor=new Date(calendarCursor.getFullYear(),calendarCursor.getMonth()-1,1);
+  selectedTrainingDate='';
+  render();
+});
+document.getElementById('calendarNextBtn')?.addEventListener('click',()=>{
+  calendarCursor=new Date(calendarCursor.getFullYear(),calendarCursor.getMonth()+1,1);
+  selectedTrainingDate='';
+  render();
+});
+document.getElementById('trainingCalendar')?.addEventListener('click',e=>{
+  const btn=e.target.closest('[data-calendar-date]');
+  if(!btn)return;
+  selectedTrainingDate=btn.dataset.calendarDate;
+  const picked=new Date(`${selectedTrainingDate}T00:00:00`);
+  if(picked.getFullYear()!==calendarCursor.getFullYear()||picked.getMonth()!==calendarCursor.getMonth()){
+    calendarCursor=new Date(picked.getFullYear(),picked.getMonth(),1);
+  }
+  render();
+});
 
 render();

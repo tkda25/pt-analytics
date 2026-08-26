@@ -3,10 +3,10 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <title>PT Analytics v18</title>
-  <link rel="stylesheet" href="style.css?v=18" />
+  <title>PT Analytics v19</title>
+  <link rel="stylesheet" href="style.css?v=19" />
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-  <script src="config.js?v=18"></script>
+  <script src="config.js?v=19"></script>
 </head>
 <body>
     <section id="authGate" class="auth-gate">
@@ -124,11 +124,11 @@
       </section>
       <section class="grid two" id="trainingChartsSection" data-section="training">
         <article class="card chart-card">
-          <div class="card-head"><h3>推定1RMの推移</h3><span>RPE補正</span></div>
+          <div class="card-head"><h3>推定1RMの推移</h3><span>kg</span></div>
           <svg id="ormChart" viewBox="0 0 700 260" preserveAspectRatio="none"></svg>
         </article>
         <article class="card chart-card">
-          <div class="card-head"><h3>トレーニングボリューム</h3><span>重量 × 回数 × セット</span></div>
+          <div class="card-head"><h3>1日ごとの総ボリューム</h3><span>kg</span></div>
           <svg id="volumeChart" viewBox="0 0 700 260" preserveAspectRatio="none"></svg>
         </article>
       </section>
@@ -173,11 +173,39 @@
         </div>
       </section>
 
-      <section class="grid one" id="trainingSection" data-section="training">
-        <article class="card">
-          <div class="card-head"><h3>トレーニング履歴</h3><span id="trainingHistoryClientName"></span><select id="exerciseFilter" class="compact-select"><option value="">全種目</option></select></div>
-           <div class="period-tabs" id="periodTabs"><button data-days="7">1週間</button><button data-days="30" class="active">1ヶ月</button><button data-days="90">3ヶ月</button><button data-days="0">全期間</button></div>
-          <div class="table-wrap"><table><thead><tr><th>日付</th><th>種目</th><th colspan="2">セット内容</th><th>推定1RM</th><th>操作</th></tr></thead><tbody id="trainingTable"></tbody></table></div>
+      <section class="training-calendar-section" id="trainingSection" data-section="training">
+        <article class="card training-calendar-card">
+          <div class="calendar-toolbar">
+            <button type="button" id="calendarPrevBtn" class="calendar-nav-btn" aria-label="前月">‹</button>
+            <div>
+              <h3>トレーニングカレンダー</h3>
+              <strong id="calendarMonthLabel"></strong>
+            </div>
+            <button type="button" id="calendarNextBtn" class="calendar-nav-btn" aria-label="次月">›</button>
+          </div>
+          <div class="calendar-weekdays" aria-hidden="true">
+            <span>日</span><span>月</span><span>火</span><span>水</span><span>木</span><span>金</span><span>土</span>
+          </div>
+          <div id="trainingCalendar" class="training-calendar"></div>
+          <div class="bodypart-legend" id="bodyPartLegend"></div>
+        </article>
+
+        <article class="card selected-day-card">
+          <div class="card-head">
+            <h3 id="selectedTrainingDateTitle">日付を選択</h3>
+            <span id="selectedDayVolume"></span>
+          </div>
+          <div id="selectedTrainingDayDetails" class="selected-training-day-details">
+            <div class="calendar-empty">カレンダーの日付をタップすると、その日のトレーニングが表示されます。</div>
+          </div>
+        </article>
+
+        <article class="card bodypart-volume-card">
+          <div class="card-head">
+            <h3>今月の部位別ボリューム</h3>
+            <span>kg</span>
+          </div>
+          <div id="bodyPartVolumeGrid" class="bodypart-volume-grid"></div>
         </article>
       </section>
 
@@ -213,6 +241,17 @@
     <form id="trainingForm" method="dialog">
       <h2 id="trainingDialogTitle">トレーニングを記録</h2>
       <label>日付<input name="date" type="date" required></label>
+      <label>部位<select name="bodyPart" id="bodyPartSelect" required>
+        <option value="">選択してください</option>
+        <option value="胸">胸</option>
+        <option value="背中">背中</option>
+        <option value="肩">肩</option>
+        <option value="二頭">二頭</option>
+        <option value="三頭">三頭</option>
+        <option value="脚">脚</option>
+        <option value="腹筋">腹筋</option>
+        <option value="有酸素">有酸素</option>
+      </select></label>
       <label>種目<select name="exercise" id="exerciseSelect"><option>ベンチプレス</option><option>スクワット</option><option>デッドリフト</option><option>ショルダープレス</option><option>ラットプルダウン</option></select></label><label>種目を追加<div class="inline-add"><input id="newExercise" placeholder="例：インクラインベンチ"><button type="button" id="addExerciseBtn">追加</button></div></label>
       <div class="set-entry-head" aria-hidden="true">
         <span>セット</span><span>kg</span><span>回数</span><span></span>
@@ -271,6 +310,6 @@
     </form>
   </dialog>
 
-  <script src="app.js?v=18"></script>
+  <script src="app.js?v=19"></script>
 </body>
 </html>
