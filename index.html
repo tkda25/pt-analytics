@@ -3,10 +3,10 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <title>PT Analytics v27</title>
-  <link rel="stylesheet" href="style.css?v=27-0826a" />
+  <title>PT Analytics v29</title>
+  <link rel="stylesheet" href="style.css?v=29-0826a" />
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-  <script src="config.js?v=27-0826a"></script>
+  <script src="config.js?v=29-0826a"></script>
 <style id="v24-critical">
 .compat-hidden{display:none!important}
 .view-title-row{display:flex;align-items:baseline;gap:12px;flex-wrap:wrap}
@@ -56,7 +56,7 @@
 
     <main>
       <div class="view-heading">
-        <p class="eyebrow">MENU <small class="build-marker">v27</small></p>
+        <p class="eyebrow">MENU <small class="build-marker">v29</small></p>
         <div class="view-title-row">
           <h2 id="viewTitle">ダッシュボード</h2>
           <span id="viewClientName" class="view-client-name">未登録</span>
@@ -72,125 +72,6 @@
       </div>
 
       <section class="training-calendar-section" id="trainingCalendarSection" data-section="training">
-        <article class="card">
-          <div class="calendar-toolbar">
-            <button type="button" id="calendarPrevBtn" class="calendar-nav-btn" aria-label="前月">‹</button>
-            <div>
-              <h3>トレーニングカレンダー</h3>
-              <strong id="calendarMonthLabel"></strong>
-            </div>
-            <button type="button" id="calendarNextBtn" class="calendar-nav-btn" aria-label="次月">›</button>
-          </div>
-          <div class="calendar-weekdays"><span>日</span><span>月</span><span>火</span><span>水</span><span>木</span><span>金</span><span>土</span></div>
-          <div id="trainingCalendar" class="training-calendar"></div>
-          <div id="bodyPartLegend" class="bodypart-legend"></div>
-        </article>
-
-        <article class="card">
-          <div class="card-head">
-  <h3 id="selectedTrainingDateTitle">日付を選択</h3>
-  <div class="selected-day-actions"><span id="selectedDayVolume"></span><button type="button" id="calendarAddTrainingBtn" class="calendar-add-btn" aria-label="トレーニングを追加" hidden>＋</button></div>
-</div>
-          <div id="selectedTrainingDayDetails" class="selected-training-day-details">
-            <div class="calendar-empty">日付をタップすると、その日のトレーニングが表示されます。</div>
-          </div>
-        </article>
-
-        <article class="card">
-          <div class="card-head"><h3>今月の部位別ボリューム</h3><span>kg</span></div>
-          <div id="bodyPartVolumeGrid" class="bodypart-volume-grid"></div>
-        </article>
-      </section>
-
-      <section class="profile-card card legacy-client-profile" id="clientsSection">
-        <div>
-          <h2><span id="clientName">未登録</span> <span class="badge">アクティブ</span></h2>
-          <p id="clientMeta">クライアントを登録してください</p>
-          <p id="clientGoal">目標：未登録</p>
-        </div>
-        <div id="noClientState" class="no-client-state" hidden>
-          <strong>クライアント未登録</strong>
-          <span>「＋ 新規クライアント」または「クライアント管理」から登録してください。</span>
-        </div>
-        <div class="quick-actions">
-          <button data-open="training">＋ トレーニング記録</button>
-          <button data-open="body">＋ 身体データ</button>
-        </div>
-      </section>
-
-      <section class="card client-list-card" id="clientListPanel" data-section="clients">
-        <div class="card-head"><h3>クライアント一覧</h3><span id="clientCountLabel">0名</span></div>
-        <div class="client-list-toolbar">
-          <input id="clientListSearch" type="search" placeholder="名前で検索">
-          <button id="addClientShortcut" class="secondary-btn">＋ 新規クライアント</button>
-        </div>
-        <div id="clientListAlphabetHint" class="client-list-alphabet-hint">あいうえお順</div><div id="clientList" class="client-list"></div>
-      </section>
-
-
-      <section class="kpis" id="kpiGrid" data-section="dashboard"></section>
-      <section class="card previous-training-card" id="previousTrainingCard" data-section="dashboard">
-        <div class="card-head"><h3>前回トレーニング</h3><span id="previousTrainingDate">—</span></div>
-        <div id="previousTrainingContent" class="previous-training-content"><div class="empty-state">まだトレーニング記録がありません</div></div>
-      </section>
-      <section class="comparison-strip card" id="comparisonStrip" data-section="dashboard"></section>
-
-      <section class="card progress-summary-card" id="progressSummary" data-section="dashboard">
-        <div class="card-head"><h3>進捗サマリー</h3><span id="progressPeriodLabel">直近3ヶ月</span></div>
-        <div class="progress-summary-grid" id="progressSummaryGrid"></div>
-      </section>
-
-
-      <section class="view-actionbar" data-section="body">
-        <div><strong>身体データ</strong><span>体重・水分・睡眠・歩数・体調を記録</span></div>
-        <button class="primary" data-open="body">＋ 身体データ</button>
-      </section>
-      <section class="grid two" id="bodySection" data-section="body">
-        <article class="card chart-card">
-          <div class="card-head"><h3>体重の推移</h3><span>kg</span></div>
-          <svg id="weightChart" viewBox="0 0 700 260" preserveAspectRatio="none"></svg>
-        </article>
-        <article class="card chart-card">
-          <div class="card-head"><h3>水分摂取量の推移</h3><span>L / 日</span></div>
-          <svg id="waterChart" viewBox="0 0 700 260" preserveAspectRatio="none"></svg>
-        </article>
-      </section>
-      <section class="grid two" id="conditionSection" data-section="condition">
-        <article class="card chart-card">
-          <div class="card-head"><h3>睡眠時間の推移</h3><span>h / 日</span></div>
-          <svg id="sleepChart" viewBox="0 0 700 260" preserveAspectRatio="none"></svg>
-        </article>
-        <article class="card chart-card">
-          <div class="card-head"><h3>歩数の推移</h3><span>steps / 日</span></div>
-          <svg id="stepsChart" viewBox="0 0 700 260" preserveAspectRatio="none"></svg>
-        </article>
-      </section>
-
-      
-      <section class="card exercise-progress-card" id="exerciseProgressSection" data-section="training">
-        <div class="card-head exercise-progress-head">
-      <h3>種目別の成長</h3>
-      <div class="progress-controls">
-        <select id="progressExerciseSelect" class="compact-select"></select>
-        <select id="progressRangeSelect" class="compact-select">
-          <option value="30">1ヶ月</option>
-          <option value="90" selected>3ヶ月</option>
-        </select>
-      </div>
-    </div>
-        <div id="prBanner" class="pr-banner" hidden>🏆 自己ベスト更新</div>
-        <div class="exercise-progress-grid">
-          <div class="mini-stat"><span>最高重量</span><strong id="progressBestWeight">—</strong></div>
-          <div class="mini-stat"><span>直近重量</span><strong id="progressLatestWeight">—</strong></div>
-          <div class="mini-stat"><span>記録数</span><strong id="progressRecordCount">—</strong></div>
-          <div class="mini-stat"><span>前回比 重量</span><strong id="progressWeightChange">—</strong></div>
-          <div class="mini-stat"><span>前回比 回数</span><strong id="progressRepsChange">—</strong></div>
-          <div class="mini-stat"><span>前回比 推定1RM</span><strong id="progressOrmChange">—</strong></div>
-          
-        </div>
-        <div class="grid two progress-charts">
-          <article class="chart-card inner-card"><div class="card-head"><h3>重量の推移</h3><span>kg</span></div><svg id="exerciseWeightChart" viewBox="0 0 700 260" preserveAspectRatio="none"></svg></article>
-          <article class="chart-card inner-card"><div class="card-head"><h3>推定1RMの推移</h3><span>kg</span></div><svg id="exerciseOrmChart" viewBox="0 0 700 260" preserveAspectRatio="none"></svg></article>
           <article class="chart-card inner-card"><div class="card-head"><h3>1日ごとのボリューム</h3><span>kg</span></div><svg id="exerciseVolumeChart" viewBox="0 0 700 260" preserveAspectRatio="none"></svg></article>
         </div>
       </section>
@@ -248,11 +129,11 @@
       </select></label>
       <label>種目<select name="exercise" id="exerciseSelect"><option>ベンチプレス</option><option>スクワット</option><option>デッドリフト</option><option>ショルダープレス</option><option>ラットプルダウン</option></select></label><label>種目を追加<div class="inline-add"><input id="newExercise" placeholder="例：インクラインベンチ"><button type="button" id="addExerciseBtn">追加</button></div></label>
       <div class="set-entry-head" aria-hidden="true">
-        <span>セット</span><span>kg</span><span>回数</span><span></span>
+        <span>セット</span><span>kg</span><span>回数</span><span>1RM</span><span></span>
       </div>
       <div id="trainingSetRows" class="training-set-rows"></div>
       <p class="set-entry-hint">重量と回数を入力して ✓ を押すと、次のセットが追加されます。</p>
-      <label>メモ<textarea name="note" rows="3" placeholder="フォーム・体調・指導メモなど"></textarea></label><p class="hint">推定1RMはBrzycki式で計算します。</p>
+      <label>メモ<textarea name="note" rows="3" placeholder="フォーム・体調・指導メモなど"></textarea></label><p class="hint">推定1RMはRM換算表をもとに計算します。例：115kg × 8回 → 約138.6kg。</p>
       <div class="dialog-actions"><button type="button" data-close>キャンセル</button><button class="primary" value="default">保存</button></div>
     </form>
   </dialog>
@@ -311,6 +192,6 @@
     </form>
   </dialog>
 
-  <script src="app.js?v=27-0826a"></script>
+  <script src="app.js?v=29-0826a"></script>
 </body>
 </html>

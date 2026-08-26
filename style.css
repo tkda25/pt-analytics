@@ -494,3 +494,41 @@ body:not(.clients-view) #clientListPanel{display:none!important}
 .report-metric strong{font-size:20px}
 .report-bodypart-list{display:grid;gap:7px}
 .report-bodypart-row{display:flex;justify-content:space-between;gap:12px;font-size:13px;border-bottom:1px solid var(--line);padding:7px 0}
+
+/* v28: per-set estimated 1RM */
+.set-entry-head,
+.training-set-row{
+  grid-template-columns:46px minmax(0,1fr) minmax(0,1fr) 82px 44px!important;
+}
+.training-set-orm{
+  min-height:40px;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  padding:0 6px;
+  border-radius:9px;
+  background:#f3f6fa;
+  color:#10233d;
+  font-size:13px;
+  font-weight:800;
+  white-space:nowrap;
+}
+.training-set-row.completed .training-set-orm{
+  background:#e9f8ef;
+  color:#16824d;
+}
+@media(max-width:480px){
+  .set-entry-head,
+  .training-set-row{
+    grid-template-columns:40px minmax(0,1fr) minmax(0,1fr) 72px 40px!important;
+    gap:5px!important;
+  }
+  .training-set-orm{
+    font-size:12px;
+    padding:0 4px;
+  }
+}
+.card:has(#ormChart),
+#ormChart{
+  display:none!important;
+}

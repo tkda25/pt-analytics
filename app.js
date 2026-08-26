@@ -158,10 +158,28 @@ function n(v,d=1){const x=Number(v);return Number.isFinite(x)?x.toFixed(d):'—'
 function esc(s){return String(s??'').replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]))}
 function clientRows(arr){return arr.filter(x=>x.clientId===state.activeClientId).sort((a,b)=>a.date.localeCompare(b.date))}
 function e1rm(w,reps){
-  const weight=Number(w), r=Number(reps);
+  const weight=Number(w), r=Math.round(Number(reps));
   if(!Number.isFinite(weight)||weight<=0||!Number.isFinite(r)||r<=0)return 0;
-  const repsUsed=Math.min(r,10);
-  return weight*36/(37-repsUsed);
+
+  // RM換算表方式（現場で使われる一般的な目安）
+  // 例: 8回 = 約83% → 115kg ÷ 0.83 ≒ 138.6kg
+  const rmPercent={
+    1:1.00,
+    2:0.95,
+    3:0.93,
+    4:0.90,
+    5:0.87,
+    6:0.85,
+    7:0.84,
+    8:0.83,
+    9:0.78,
+    10:0.75,
+    11:0.73,
+    12:0.70
+  };
+
+  const pct=rmPercent[Math.min(r,12)]||0.70;
+  return weight/pct;
 }
 
 const SETS_NOTE_PREFIX='__PTSETS__:';
@@ -247,6 +265,22 @@ function download(name,text,type='text/plain'){
 
 const trainingSetRows=document.getElementById('trainingSetRows');
 
+
+function updateTrainingSet1RM(row){
+  if(!row)return;
+  const w=Number(row.querySelector('.set-weight')?.value);
+  const reps=Number(row.querySelector('.set-reps')?.value);
+  const out=row.querySelector('.training-set-orm');
+  if(!out)return;
+
+  if(!Number.isFinite(w)||w<=0||!Number.isFinite(reps)||reps<=0){
+    out.textContent='—';
+    return;
+  }
+  const est=e1rm(w,reps);
+  out.textContent=est?`${Math.round(est*10)/10}kg`:'—';
+}
+
 function addTrainingSetRow(values={},completed=false){
   const index=trainingSetRows.children.length+1;
   const row=document.createElement('div');
@@ -255,7 +289,9 @@ function addTrainingSetRow(values={},completed=false){
     <span class="training-set-number">${index}</span>
     <input class="set-weight" type="number" inputmode="decimal" step="0.5" min="0" placeholder="??" value="${values.weight??''}" aria-label="${index}セット目の重量">
     <input class="set-reps" type="number" inputmode="numeric" min="1" placeholder="??" value="${values.reps??''}" aria-label="${index}セット目の回数">
+    <span class="training-set-orm" aria-live="polite">—</span>
     <button type="button" class="training-set-check" aria-label="${index}セット目を完了">✓</button>`;
+  updateTrainingSet1RM(row);
   trainingSetRows.appendChild(row);
   return row;
 }
@@ -277,6 +313,12 @@ function collectTrainingSets(){
     }))
     .filter(s=>Number.isFinite(s.weight)&&s.weight>0&&Number.isFinite(s.reps)&&s.reps>0);
 }
+
+
+trainingSetRows.addEventListener('input',e=>{
+  if(!e.target.matches('.set-weight,.set-reps'))return;
+  updateTrainingSet1RM(e.target.closest('.training-set-row'));
+});
 
 trainingSetRows.addEventListener('click',e=>{
   const check=e.target.closest('.training-set-check');
@@ -982,7 +1024,6 @@ function render(){
   drawLine('waterChart',bd.filter(x=>x.water).map(x=>({date:x.date,value:x.water})));
   drawLine('sleepChart',bd.filter(x=>x.sleep).map(x=>({date:x.date,value:x.sleep})));
   drawLine('stepsChart',bd.filter(x=>x.steps).map(x=>({date:x.date,value:x.steps})));
-  drawLine('ormChart',tr.map(x=>({date:x.date,value:recordBest1RM(x)})));
   drawBars('volumeChart',groupVolumeByDate(tr));
   cleanDashboardVolumeUI();
     removeEstimated1RmBestUi();
