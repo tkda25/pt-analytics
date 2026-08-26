@@ -528,3 +528,5 @@ body:not(.clients-view) #clientListPanel{display:none!important}
     padding:0 4px;
   }
 }
+
+.axis-label{font-size:12px;fill:#6f8199;font-weight:700;}
