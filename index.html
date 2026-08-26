@@ -3,10 +3,10 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <title>PT Analytics v19.2</title>
-  <link rel="stylesheet" href="style.css?v=19.2" />
+  <title>PT Analytics v20</title>
+  <link rel="stylesheet" href="style.css?v=20" />
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-  <script src="config.js?v=19"></script>
+  <script src="config.js?v=20"></script>
 </head>
 <body>
     <section id="authGate" class="auth-gate">
@@ -173,8 +173,8 @@
         </div>
       </section>
 
-      <section class="training-calendar-section" id="trainingSection" data-section="training">
-        <article class="card training-calendar-card">
+      <section class="training-calendar-section" id="trainingCalendarSection" data-section="training">
+        <article class="card">
           <div class="calendar-toolbar">
             <button type="button" id="calendarPrevBtn" class="calendar-nav-btn" aria-label="前月">‹</button>
             <div>
@@ -183,29 +183,29 @@
             </div>
             <button type="button" id="calendarNextBtn" class="calendar-nav-btn" aria-label="次月">›</button>
           </div>
-          <div class="calendar-weekdays" aria-hidden="true">
-            <span>日</span><span>月</span><span>火</span><span>水</span><span>木</span><span>金</span><span>土</span>
-          </div>
+          <div class="calendar-weekdays"><span>日</span><span>月</span><span>火</span><span>水</span><span>木</span><span>金</span><span>土</span></div>
           <div id="trainingCalendar" class="training-calendar"></div>
-          <div class="bodypart-legend" id="bodyPartLegend"></div>
+          <div id="bodyPartLegend" class="bodypart-legend"></div>
         </article>
 
-        <article class="card selected-day-card">
-          <div class="card-head">
-            <h3 id="selectedTrainingDateTitle">日付を選択</h3>
-            <span id="selectedDayVolume"></span>
-          </div>
+        <article class="card">
+          <div class="card-head"><h3 id="selectedTrainingDateTitle">日付を選択</h3><span id="selectedDayVolume"></span></div>
           <div id="selectedTrainingDayDetails" class="selected-training-day-details">
-            <div class="calendar-empty">カレンダーの日付をタップすると、その日のトレーニングが表示されます。</div>
+            <div class="calendar-empty">日付をタップすると、その日のトレーニングが表示されます。</div>
           </div>
         </article>
 
-        <article class="card bodypart-volume-card">
-          <div class="card-head">
-            <h3>今月の部位別ボリューム</h3>
-            <span>kg</span>
-          </div>
+        <article class="card">
+          <div class="card-head"><h3>今月の部位別ボリューム</h3><span>kg</span></div>
           <div id="bodyPartVolumeGrid" class="bodypart-volume-grid"></div>
+        </article>
+      </section>
+
+      <section class="grid one" id="trainingSection" data-section="training">
+        <article class="card">
+          <div class="card-head"><h3>トレーニング履歴</h3><span id="trainingHistoryClientName"></span><select id="exerciseFilter" class="compact-select"><option value="">全種目</option></select></div>
+           <div class="period-tabs" id="periodTabs"><button data-days="7">1週間</button><button data-days="30" class="active">1ヶ月</button><button data-days="90">3ヶ月</button><button data-days="0">全期間</button></div>
+          <div class="table-wrap"><table><thead><tr><th>日付</th><th>種目</th><th colspan="2">セット内容</th><th>推定1RM</th><th>操作</th></tr></thead><tbody id="trainingTable"></tbody></table></div>
         </article>
       </section>
 
@@ -310,6 +310,6 @@
     </form>
   </dialog>
 
-  <script src="app.js?v=19.2"></script>
+  <script src="app.js?v=20"></script>
 </body>
 </html>
