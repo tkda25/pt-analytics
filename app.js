@@ -947,7 +947,12 @@ function applyView(view){
     el.classList.toggle('view-hidden',el.dataset.section!==currentView);
   });
 
-  document.body.classList.toggle('clients-view',currentView==='clients');
+  const isClientsView=currentView==='clients';
+  document.body.classList.toggle('clients-view',isClientsView);
+
+  // クライアント一覧・検索は「クライアント一覧」MENUでだけ表示する
+  const clientListPanel=document.getElementById('clientListPanel');
+  if(clientListPanel) clientListPanel.classList.toggle('view-hidden',!isClientsView);
 
   const title=document.getElementById('viewTitle');
   if(title)title.textContent=viewTitles[currentView];

@@ -451,5 +451,10 @@ button[data-open="training"]{display:none!important}
 .view-title-row{display:flex;align-items:baseline;gap:12px;flex-wrap:wrap}
 .view-client-name{font-size:18px;font-weight:800;color:#71839d}
 .legacy-client-profile{display:none!important}
-#clientListPanel{display:block}
+body:not(.clients-view) #clientListPanel{display:none!important}
+body.clients-view #clientListPanel{display:block!important}
 #trainingChartsSection,.card:has(#ormChart),.card:has(#volumeChart){display:none!important}
+
+/* v25: client search/list is exclusive to クライアント一覧 */
+body:not(.clients-view) #clientListPanel,
+body:not(.clients-view) .client-list-card{display:none!important}
