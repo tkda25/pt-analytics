@@ -15,7 +15,7 @@ const cloudConfigReady =
   window.PT_SUPABASE_URL.startsWith('https://') &&
   typeof window.PT_SUPABASE_PUBLISHABLE_KEY==='string' &&
   window.PT_SUPABASE_PUBLISHABLE_KEY.startsWith('sb_');
-const sb = cloudConfigReady ? window.supabase.createClient(window.PT_SUPABASE_URL,window.PT_SUPABASE_PUBLISHABLE_KEY) : null;
+const sb = null; // Local-only mode: remote reads and writes disabled.
 let currentUser=null, cloudReady=false, cloudBusy=false, suppressCloudSave=false, cloudSaveTimer=null;
 
 function setAuthMessage(msg,type=''){const e=document.getElementById('authMessage');if(e){e.textContent=msg||'';e.className='auth-message'+(type?' '+type:'')}}
@@ -1156,48 +1156,10 @@ document.querySelectorAll('.nav-item[data-view]').forEach(btn=>{
 });
 
 
-document.getElementById('authForm')?.addEventListener('submit',async e=>{
-  e.preventDefault();if(!sb){setAuthMessage('Supabase設定が未完了です。','error');return}
-  const email=document.getElementById('authEmail').value.trim(),password=document.getElementById('authPassword').value;
-  setAuthMessage('ログイン中...');
-  const {error}=await sb.auth.signInWithPassword({email,password});
-  if(error)setAuthMessage(error.message,'error');
-});
-document.getElementById('signupBtn')?.addEventListener('click',async()=>{
-  if(!sb){setAuthMessage('Supabase設定が未完了です。','error');return}
-  const email=document.getElementById('authEmail').value.trim(),password=document.getElementById('authPassword').value;
-  if(!email||password.length<6){setAuthMessage('メールアドレスと6文字以上のパスワードを入力してください。','error');return}
-  setAuthMessage('登録中...');
-  const {data,error}=await sb.auth.signUp({email,password});
-  if(error)setAuthMessage(error.message,'error'); else if(data.session)setAuthMessage('登録しました。','success'); else setAuthMessage('確認メールを確認してください。','success');
-});
-document.getElementById('menuAccountBtn')?.addEventListener('click',()=>{closeMobileMenu();document.getElementById('accountDialog')?.showModal();});
-document.getElementById('logoutBtn')?.addEventListener('click',async()=>{await sb?.auth.signOut();document.getElementById('accountDialog')?.close()});
-bootCloud();
+// v30.0: no login or signup; local storage only.
 
 
-document.getElementById('migrateLocalBtn')?.addEventListener('click',async()=>{
-  if(!sb||!currentUser)return;
-  const legacyKeys=['ptAnalyticsV5','ptAnalyticsV4','ptAnalyticsV3','ptAnalyticsV2','ptAnalytics'];
-  let legacy=null;
-  for(const k of legacyKeys){
-    try{
-      const raw=localStorage.getItem(k);
-      if(!raw)continue;
-      const parsed=JSON.parse(raw);
-      if(Array.isArray(parsed.clients)&&parsed.clients.length){legacy=normalizeState(parsed);break}
-    }catch(e){}
-  }
-  if(!legacy||!legacy.clients.length){alert('この端末に移行できる旧データが見つかりませんでした。');return}
-  if(!confirm(`${legacy.clients.length}名の旧データを現在のクラウドアカウントへ移行しますか？`))return;
-  state=legacy;
-  ensureUuidState();
-  const raw=JSON.stringify(state);localStorage.setItem(KEY,raw);localStorage.setItem('ptAnalyticsV2',raw);
-  cloudReady=true;
-  await pushFullStateToCloud();
-  await fetchCloudState();
-  alert('クラウドへの移行が完了しました。');
-} );
+// v30.0: cloud migration disabled.
 
 
 document.getElementById('calendarPrevBtn')?.addEventListener('click',()=>{
