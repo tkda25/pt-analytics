@@ -3,10 +3,10 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <title>PT Analytics v29.9</title>
+  <title>PT Analytics v30.0</title>
   <link rel="stylesheet" href="style.css?v=29-3-0826a" />
-  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-  <script src="config.js?v=27-0826a"></script>
+  
+  
 <style id="v24-critical">
 .compat-hidden{display:none!important}
 .view-title-row{display:flex;align-items:baseline;gap:12px;flex-wrap:wrap}
@@ -16,22 +16,6 @@
 #trainingChartsSection,.card:has(#ormChart),.card:has(#volumeChart){display:none!important}
 </style></head>
 <body>
-    <section id="authGate" class="auth-gate">
-    <div class="auth-card">
-      <div class="auth-brand">🏋️ PT Analytics</div>
-      <h1>クラウドログイン</h1>
-      <p>iPhone・iPad・PCで同じデータを使えます。</p>
-      <form id="authForm">
-        <label>メールアドレス<input id="authEmail" type="email" autocomplete="email" required></label>
-        <label>パスワード<input id="authPassword" type="password" autocomplete="current-password" minlength="6" required></label>
-        <div class="auth-actions">
-          <button type="submit" class="primary">ログイン</button>
-          <button type="button" id="signupBtn" class="secondary-btn">新規登録</button>
-        </div>
-        <p id="authMessage" class="auth-message"></p>
-      </form>
-    </div>
-  </section>
 
   <button id="mobileMenuBtn" class="mobile-menu-btn" aria-label="メニューを開く">☰</button>
   <div id="sidebarBackdrop" class="sidebar-backdrop" hidden></div>
@@ -49,7 +33,7 @@
         <div class="sidebar-tools">
           <div class="sidebar-tools-label">設定</div>
           <button type="button" class="sidebar-tool-btn" id="menuBackupBtn">バックアップ</button>
-          <button type="button" class="sidebar-tool-btn" id="menuAccountBtn">アカウント</button>
+          
           <button type="button" class="sidebar-tool-btn danger" id="menuResetBtn">初期化</button>
         </div>
     </aside>
@@ -299,17 +283,6 @@
     </form>
   </dialog>
 
-    <dialog id="accountDialog">
-    <form method="dialog">
-      <h2>アカウント</h2>
-      <p id="accountEmail" class="hint"></p>
-      <div class="account-status"><span>保存先</span><strong>Supabase クラウド</strong></div>
-      <div class="account-status"><span>同期状態</span><strong id="cloudSyncStatus">確認中</strong></div>
-      <button type="button" id="migrateLocalBtn" class="secondary-btn" style="width:100%;margin-top:12px">この端末の旧データをクラウドへ移行</button>
-      <div class="dialog-actions"><button type="button" id="logoutBtn" class="danger-btn">ログアウト</button><button type="button" data-close>閉じる</button></div>
-    </form>
-  </dialog>
-
-  <script src="app.js?v=29-9-0826a"></script>
+  <script src="app.js?v=30-0-1116"></script>
 </body>
 </html>
