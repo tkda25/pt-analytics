@@ -544,3 +544,11 @@ body:not(.clients-view) #clientListPanel{display:none!important}
   fill:#6f8199;
   font-weight:700;
 }
+
+/* v30.1 metabolism panel */
+.metabolism-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px;margin:16px 0}
+.metabolism-metric{padding:18px;border:1px solid #dce5f0;border-radius:16px;background:#f7f9fc;display:flex;flex-direction:column;gap:10px;min-width:0}
+.metabolism-metric span{color:#73849c;font-size:14px}
+.metabolism-metric strong{color:#13233b;font-size:clamp(18px,3vw,26px);overflow-wrap:anywhere}
+.metabolism-inputs{margin-top:12px}
+@media(max-width:480px){.metabolism-grid{gap:9px}.metabolism-metric{padding:13px}}
