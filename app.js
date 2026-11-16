@@ -875,8 +875,34 @@ function renderPracticalReport(rows,bodyRows){
     <div class="report-metric"><span>部位別ボリューム</span><div class="report-bodypart-list">${bp||'—'}</div></div>`;
 }
 
+
+function renderMetabolism(){
+  const out=document.getElementById('metabolismMetrics');if(!out)return;
+  const c=active();
+  const neatInput=document.getElementById('neatKcal'), exerciseInput=document.getElementById('exerciseKcal');
+  if(!c){out.innerHTML='<p>クライアントを選択してください。</p>';neatInput.value='';exerciseInput.value='';return;}
+  neatInput.value=c.neatKcal??'';exerciseInput.value=c.exerciseKcal??'';
+  const height=Number(c.height),age=Number(c.age),sex=c.sex;
+  const rows=state.body.filter(x=>x.clientId===c.id&&Number(x.bodyWeight)>0).sort((a,b)=>b.date.localeCompare(a.date));
+  const weight=Number(rows[0]?.bodyWeight);
+  const bmi=height>0&&weight>0?weight/((height/100)**2):null;
+  const bmr=height>0&&weight>0&&age>0&&(sex==='男性'||sex==='女性')?10*weight+6.25*height-5*age+(sex==='男性'?5:-161):null;
+  const neat=c.neatKcal===''||c.neatKcal==null?null:Number(c.neatKcal);
+  const exercise=c.exerciseKcal===''||c.exerciseKcal==null?null:Number(c.exerciseKcal);
+  const validNeat=Number.isFinite(neat)&&neat>=0?neat:null;
+  const validExercise=Number.isFinite(exercise)&&exercise>=0?exercise:null;
+  const tdee=bmr!=null&&validNeat!=null&&validExercise!=null?(bmr+validNeat+validExercise)/0.9:null;
+  const items=[['最新体重',weight>0?weight.toFixed(1)+' kg':'—'],['BMI',bmi!=null?bmi.toFixed(1):'—'],['基礎代謝量',bmr!=null?Math.round(bmr).toLocaleString()+' kcal/日':'—'],['推定総消費カロリー',tdee!=null?Math.round(tdee).toLocaleString()+' kcal/日':'—']];
+  out.innerHTML=items.map(([label,value])=>'<div class="metabolism-metric"><span>'+label+'</span><strong>'+value+'</strong></div>').join('');
+}
+['neatKcal','exerciseKcal'].forEach(id=>document.getElementById(id)?.addEventListener('change',e=>{
+  const c=active();if(!c)return;const v=e.target.value.trim();
+  c[id]=v===''?'':Math.max(0,Number(v));save();renderMetabolism();
+}));
+
 function render(){
   const c=active();
+  renderMetabolism();
   fillClientSelects();refreshExercises();
 
   if(!c){
